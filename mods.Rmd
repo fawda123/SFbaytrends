@@ -17,6 +17,7 @@ library(tidyverse)
 library(lubridate)
 library(mgcv)
 library(shiny)
+library(plotly)
 
 source('R/funcs.R')
 
@@ -469,3 +470,28 @@ renderPlot({
 }, height = 700, width = 900)
 
 ```
+
+```{r}
+renderPlotly({
+  
+  toplo <- modonest %>% 
+    filter(modi %in% input$modst)
+  
+  tosrf <- dynagam(toplo$modv[[1]], toplo$data[[1]], cvr ='sal', prdout = T) %>% 
+    select(-dec_time, -date, -year, -month) %>% 
+    as.matrix
+  
+  scene <- list(
+    aspectmode = 'manual', 
+    aspectratio = list(x = 0.5, y = 1, z = 0.4), 
+    xaxis = list(title = 'Salinity'), 
+    yaxis = list(title = 'Time'), 
+    zaxis = list(title = 'log-Chl')
+  )
+  
+  p <- plot_ly(z = ~tosrf) %>% 
+    add_surface(colors = rev(RColorBrewer::brewer.pal(11, 'Spectral'))) %>% 
+    layout(scene = scene)
+  p
+  
+})

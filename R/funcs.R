@@ -13,7 +13,7 @@ g_legend<-function(a.gplot){
 dynagam <- function(mod_in, dat_in, cvr, grd = 30, years = NULL, alpha = 1,
                     size = 1, col_vec = NULL, allflo = FALSE, month = c(1:12), scales = NULL, ncol = NULL, 
                     pretty = TRUE, grids = TRUE, use_bw = TRUE, fac_nms = NULL,
-                    cols = RColorBrewer::brewer.pal(11, 'Spectral')){
+                    cols = RColorBrewer::brewer.pal(11, 'Spectral'), prdout = FALSE){
 
   # add year, month columns to dat_in
   dat_in <- mutate(dat_in, 
@@ -47,12 +47,14 @@ dynagam <- function(mod_in, dat_in, cvr, grd = 30, years = NULL, alpha = 1,
       date = date_decimal(dec_time),
       year = year(date),
       month = month(date)
-    ) %>%  
+    ) 
+  
+  if(prdout) return(dynadat)
+  
+  to_plo <- dynadat %>%  
     select(-date, -dec_time) %>% 
     gather('flo', 'res', -year, -month) %>% 
     mutate(flo = as.numeric(as.character(flo)))
-  
-  to_plo <- dynadat
   
   # subset years to plot
   if(!is.null(years)){
