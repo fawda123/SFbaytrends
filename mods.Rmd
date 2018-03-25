@@ -8,8 +8,8 @@ self_contained: yes
 runtime: shiny
 ---
 
-
-```{r}
+```{r, message = F, warning = F, results = 'hide'}
+# globals
 library(knitr)
 opts_chunk$set(warning = FALSE, message = FALSE, dev.args = list(bg = 'transparent'), eval = T)
 
@@ -22,6 +22,8 @@ source('R/funcs.R')
 
 data(datprc)
 ```
+
+## Exploratory plots
 
 ```{r}
 # create plots for whole time series, by year, by month
@@ -101,7 +103,205 @@ renderPlot({
   
   toplo()
   
-}, height = 800, width = 800)
+}, height = 800, width = 900)
 
+```
+
+## GAMs of log-chlorophyll with annual, seasonal trends
+
+```{r}
+# get GAMs for each station, simple models with different combos of dec_time, doy
+
+# smooths to evaluate
+smths <- c(
+  "s(dec_time, bs = 'tp')",  
+  "s(doy, bs = 'cc')",
+  "te(dec_time, doy, bs = c('tp', 'cc'))"
+)
+
+# get all combinations of smoothers to model, one to many
+frms <- list()
+for(i in seq_along(smths)){
+  
+ frm <- combn(smths, i) %>%
+    apply(2, function(x){
+      paste(x, collapse = ' + ') %>% 
+        paste('log10(chl) ~ ', .) %>% 
+        formula
+    }) 
+  
+ frms <- c(frms, frm)
+ 
+}
+
+# enframe frms for combine with tomod
+frms <- frms %>% 
+  enframe('modi', 'frm')
+
+# data to model, same as datprc, params in wide format, nested by station
+# crossed with frms
+tomod <- datprc %>% 
+  spread(param, value) %>% 
+  group_by(station) %>% 
+  nest %>% 
+  crossing(frms)
+
+# create models for every station, gam model eval
+modssta <- tomod %>% 
+  mutate(
+    modv = pmap(list(data, frm), function(data, frm){
+  
+      gam(frm, 
+        knots = list(doy = c(1, 366)),
+        data = data, 
+        na.action = na.exclude
+      )
+
+  })
+  )
+
+```
+
+Select station for GAM summary of chlorophyll model:
+```{r, echo = F}
+# selection widgets
+selectInput("sta", "Choose station:", unique(datprc$station))
+
+mods <- reactive({
+  modssta %>% filter(station %in% input$sta)
+})
+
+# smoother stats of GAMs
+renderTable({
+  map(mods()$modv, ~ summary(.x)$s.table %>% data.frame %>% rownames_to_column('smoother')) %>% 
+    enframe %>% 
+    unnest
+})
+
+# summary stats of GAMs, model fit/perf
+renderTable({
+  map(mods()$modv, ~ data.frame(
+      AIC = AIC(.x), 
+      GCV = .x$gcv.ubre,
+      R2 = summary(.x)$r.sq)) %>% 
+    enframe %>% 
+    unnest
+})
+```
+
+```{r}
+# prediction data
+prdplo <- reactive({
+    
+  prdplo <- mods() %>%
+    mutate(prddat = pmap(list(data, modv), function(data, modv){
+  
+  
+      prddat <- data.frame(
+          dec_time = seq(min(data$dec_time), max(data$dec_time), length = 1000)
+        ) %>%
+        mutate(
+          date = date_decimal(dec_time),
+          date = as.Date(date),
+          mo = month(date, label = TRUE),
+          doy = yday(date),
+          yr = year(date)
+        )
+  
+      prd <- predict(modv, newdata = prddat)
+      
+      prddat <- prddat %>% mutate(chl = prd)
+  
+      return(prddat)
+      
+    })) %>% 
+    select(modi, prddat) %>% 
+    unnest
+  
+})
+
+rawchl <- reactive({
+  rawchl <- mods()$data[[1]]
+})
+
+# facet by mod, doy x axis, lines by year
+renderPlot({
+  p <- ggplot(prdplo(), aes(x = doy, group = factor(yr), colour = yr)) + 
+    geom_line(aes(y = chl)) + 
+    theme_bw(base_family = 'serif', base_size = 16) + 
+    theme(
+      legend.position = 'top', 
+      legend.title = element_blank()
+      ) + 
+    scale_y_continuous('log10(chl)') +
+    facet_wrap(~ modi, ncol = 2) +
+    guides(colour = guide_colourbar(barheight = 1, barwidth = 20)) + 
+    ggtitle(paste0('Station', input$sta))
+  p
+}, height = 900, width = 900)
+
+# plot predictions, all mods, by time
+renderPlot({
+  # plot
+  p <- ggplot(prdplo(), aes(x = date)) + 
+    geom_point(data = rawchl(), aes(y = log10(chl)), size = 0.5) +
+    geom_line(aes(y = chl, colour = factor(modi))) + 
+    theme_bw(base_family = 'serif', base_size = 16) + 
+    theme(
+      legend.position = 'top', 
+      legend.title = element_blank()
+      ) + 
+    ggtitle(paste0('Station', input$sta))
+  p
+})
+```
+
+```{r, echo = F}
+selectInput('mod', "Select a model:", unique(modssta$modi))
+```
+```{r}
+# smoother stats of GAMs
+renderTable({
+  
+  md <- mods() %>% 
+    filter(modi %in% input$mod) %>% 
+    .$modv %>% 
+    .[[1]]
+  tab <- summary(md)$s.table %>% data.frame %>% rownames_to_column('smoother')
+  return(tab)
+
+})
+
+# summary stats of GAMs, model fit/perf
+renderTable({
+  
+  md <- mods() %>% 
+    filter(modi %in% input$mod) %>% 
+    .$modv %>% 
+    .[[1]] 
+  tab <- data.frame(
+    AIC = AIC(md), 
+    GCV = md$gcv.ubre,
+    R2 = summary(md)$r.sq)
+  return(tab)
+  
+})
+renderPlot({
+  
+  toplo <- prdplo() %>% 
+    filter(modi %in% input$mod)
+  
+  # plot
+  p <- ggplot(toplo, aes(x = date)) + 
+    geom_point(data = rawchl(), aes(y = log10(chl)), size = 0.5) +
+    geom_line(aes(y = chl)) + 
+    theme_bw(base_family = 'serif', base_size = 16) + 
+    theme(
+      legend.position = 'top', 
+      legend.title = element_blank()
+      ) + 
+    ggtitle(paste0('Station', input$sta))
+  p
+})
 ```
 
