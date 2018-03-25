@@ -1,0 +1,107 @@
+---
+title: "GAM evaluation - SF Bay"
+output: 
+  html_document:
+    code_folding: hide
+    css: kable.css
+self_contained: yes
+runtime: shiny
+---
+
+
+```{r}
+library(knitr)
+opts_chunk$set(warning = FALSE, message = FALSE, dev.args = list(bg = 'transparent'), eval = T)
+
+library(tidyverse)
+library(lubridate)
+library(mgcv)
+library(shiny)
+
+source('R/funcs.R')
+
+data(datprc)
+```
+
+```{r}
+# create plots for whole time series, by year, by month
+# all variables, stations
+rawplo <- datprc %>% 
+  group_by(param) %>% 
+  nest %>% 
+  mutate(
+    tot = map(data, function(x){
+      
+      p <- ggplot(x, aes(x = dec_time, y = value)) + 
+        geom_line() +
+        theme_bw(base_family = 'serif') +
+        facet_wrap(~ station, ncol = 2) +
+        theme(strip.background = element_blank())
+      
+      return(p)
+      
+    }),
+    yrs = map(data, function(x){
+      
+      p <- ggplot(x, aes(x = factor(yr), y = value)) + 
+        geom_boxplot(base_family = 'serif') +
+        theme_bw(base_family = 'serif') +
+        scale_x_discrete("Year") +
+        facet_wrap(~ station, ncol = 2) +
+        theme(strip.background = element_blank())
+      
+      return(p)
+      
+    }), 
+    mos = map(data, function(x){
+      
+      p <- ggplot(x, aes(x = mo, y = value)) + 
+        geom_boxplot() +
+        theme_bw() +
+        facet_wrap(~ station, ncol = 2) +
+        theme(strip.background = element_blank())
+      
+      return(p)
+      
+    })
+  )
+```
+
+Plots for raw data, all stations and parameters, 1990 - 2017.  Select the parameter, plot type (total time series, by year, or by month), and variable transformation.
+```{r, echo = F}
+# selection widgets
+selectInput("prm", "Choose parameter:", unique(datprc$param))
+selectInput("typ", "Choose plot type:", c('tot', 'yrs', 'mos'))
+selectInput("log", "Log-space:", c(T, F))
+
+# get the plot
+toplo <- reactive({
+
+  sel <- filter(rawplo, param %in% input$prm) %>% 
+    select(matches(input$typ)) %>% 
+    .[[1]] %>% 
+    .[[1]]
+  
+  if(input$log){
+  
+    sel <- sel + scale_y_log10(input$prm)
+    
+  } else {
+    
+    sel <- sel + scale_y_continuous(input$prm)
+    
+  }
+  
+  return(sel)
+  
+})
+
+# make the plot
+renderPlot({
+  
+  toplo()
+  
+}, height = 800, width = 800)
+
+```
+
