@@ -21,6 +21,8 @@ library(shiny)
 source('R/funcs.R')
 
 data(datprc)
+data(modssta)
+data(sta32)
 ```
 
 ## Exploratory plots
@@ -146,23 +148,23 @@ tomod <- datprc %>%
   nest %>% 
   crossing(frms)
 
-# create models for every station, gam model eval
-modssta <- tomod %>% 
-  mutate(
-    modv = pmap(list(data, frm), function(data, frm){
-  
-      gam(frm, 
-        knots = list(doy = c(1, 366)),
-        data = data, 
-        na.action = na.exclude
-      )
-
-  })
-  )
-
+# # create models for every station, gam model eval
+# modssta <- tomod %>% 
+#   mutate(
+#     modv = pmap(list(data, frm), function(data, frm){
+#   
+#       gam(frm, 
+#         knots = list(doy = c(1, 366)),
+#         data = data, 
+#         na.action = na.exclude
+#       )
+# 
+#   })
+#   )
+# save(modssta, file = 'data/modssta.RData', compress = 'xz')
 ```
 
-Select station for GAM summary of chlorophyll model:
+Select station for summary of all seven GAM chlorophyll models:
 ```{r, echo = F}
 # selection widgets
 selectInput("sta", "Choose station:", unique(datprc$station))
@@ -256,6 +258,7 @@ renderPlot({
 })
 ```
 
+Individual model:
 ```{r, echo = F}
 selectInput('mod', "Select a model:", unique(modssta$modi))
 ```
@@ -305,3 +308,164 @@ renderPlot({
 })
 ```
 
+## GAMs of log-chlorophyll with annual, seasonal, salinity trends, station 32 only
+
+```{r}
+# # get GAMs for each station, simple models with different combos of dec_time, doy
+# 
+# # smooths to evaluate
+# smths <- c(
+#   "s(dec_time, bs = 'tp')",  
+#   "s(doy, bs = 'cc')",
+#   "s(sal, bs = 'tp')",
+#   "te(sal, doy, bs = c('tp', 'cc'))", 
+#   "te(sal, dec_time, bs = c('tp', 'tp'))",
+#   "te(dec_time, doy, bs = c('tp', 'cc'))",
+#   "te(dec_time, doy, sal, bs = c('tp', 'cc', 'tp'))"
+# )
+# 
+# # get all combinations of smoothers to model, one to many
+# frms <- list()
+# for(i in seq_along(smths)){
+#   
+#  frm <- combn(smths, i) %>%
+#     apply(2, function(x){
+#       paste(x, collapse = ' + ') %>% 
+#         paste('log10(chl) ~ ', .) %>% 
+#         formula
+#     }) 
+#   
+#  frms <- c(frms, frm)
+#  
+# }
+# 
+# # enframe frms for combine with tomod
+# frms <- frms %>% 
+#   enframe('modi', 'frm')
+# 
+# # data to model, same as datprc, params in wide format, nested by station
+# # crossed with frms
+# tomod <- datprc %>% 
+#   spread(param, value) %>% 
+#   group_by(station) %>% 
+#   nest %>% 
+#   crossing(frms)
+# 
+# # create models for every station, gam model eval
+# modsstacv <- tomod %>% 
+#   mutate(
+#     modv = pmap(list(data, frm), function(data, frm){
+#   
+#       gam(frm, 
+#         knots = list(doy = c(1, 366)),
+#         data = data, 
+#         na.action = na.exclude
+#       )
+# 
+#   })
+#   )
+# sta32 <- modsstacv %>% filter(station %in% 32)
+# save(sta32, file = 'data/sta32.RData', compress = 'xz')
+```
+
+Summary of all model combinations at station 32:
+```{r, echo = F, eval = T}
+
+modonest <- sta32
+
+# smoother stats of GAMs
+renderDataTable({
+  map(modonest$modv, ~ summary(.x)$s.table %>% data.frame %>% rownames_to_column('smoother')) %>% 
+    enframe %>% 
+    unnest%>% 
+    mutate_if(is.numeric, round, 2)
+}, options = list(pageLength = 10))
+
+# summary stats of GAMs, model fit/perf
+renderDataTable({
+  map(modonest$modv, ~ data.frame(
+      AIC = AIC(.x), 
+      GCV = .x$gcv.ubre,
+      R2 = summary(.x)$r.sq)) %>% 
+    enframe %>% 
+    unnest %>% 
+    mutate_if(is.numeric, round, 2)
+}, options = list(pageLength = 10))
+```
+
+```{r, eval = T}
+# prediction data
+prdplost <- modonest %>%
+  mutate(prddat = pmap(list(data, modv), function(data, modv){
+
+    prd <- predict(modv) %>% data.frame(chlprd = .)
+    
+    out <- data %>% bind_cols(prd)
+
+    return(out)
+    
+  })) %>% 
+  select(modi, prddat) %>% 
+  unnest
+```
+
+View results for one model at a time:
+```{r, echo = F, eval = T}
+selectInput('modst', "Select a model:", modonest$modi)
+```
+```{r, eval = T}
+# smoother stats of GAMs
+renderTable({
+  
+  md <- modonest %>% 
+    filter(modi %in% input$modst) %>% 
+    .$modv %>% 
+    .[[1]]
+  tab <- summary(md)$s.table %>% data.frame %>% rownames_to_column('smoother')
+  return(tab)
+
+})
+
+# summary stats of GAMs, model fit/perf
+renderTable({
+  
+  md <- modonest %>% 
+    filter(modi %in% input$modst) %>% 
+    .$modv %>% 
+    .[[1]] 
+  tab <- data.frame(
+    AIC = AIC(md), 
+    GCV = md$gcv.ubre,
+    R2 = summary(md)$r.sq)
+  return(tab)
+  
+})
+# predictions across time
+renderPlot({
+  
+  toplo <- prdplost %>% 
+    filter(modi %in% input$modst)
+  
+  # plot
+  p <- ggplot(toplo, aes(x = date)) + 
+    geom_point(aes(y = log10(chl)), size = 0.5) +
+    geom_line(aes(y = chlprd)) + 
+    theme_bw(base_family = 'serif', base_size = 16) + 
+    theme(
+      legend.position = 'top', 
+      legend.title = element_blank()
+      ) + 
+    ggtitle('Station32')
+  p
+})
+# dynagam
+renderPlot({
+  
+  toplo <- modonest %>% 
+    filter(modi %in% input$modst)
+  
+  dynagam(toplo$modv[[1]], toplo$data[[1]], cvr ='sal')
+ 
+}, height = 700, width = 900)
+
+```

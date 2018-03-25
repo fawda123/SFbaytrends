@@ -10,16 +10,21 @@ g_legend<-function(a.gplot){
 # gam equivalent of dynaplot function
 # looks at changes in in the chlorophyll-flow relationships by month over different years
 # grd is the number of salinity values to use in predictions
-dynagam <- function(mod_in, dat_in, grd = 30, years = NULL, alpha = 1,
+dynagam <- function(mod_in, dat_in, cvr, grd = 30, years = NULL, alpha = 1,
                     size = 1, col_vec = NULL, allflo = FALSE, month = c(1:12), scales = NULL, ncol = NULL, 
-                    pretty = TRUE, grids = TRUE, use_bw = TRUE, fac_nms = NULL){
-  
+                    pretty = TRUE, grids = TRUE, use_bw = TRUE, fac_nms = NULL,
+                    cols = RColorBrewer::brewer.pal(11, 'Spectral')){
+
   # add year, month columns to dat_in
   dat_in <- mutate(dat_in, 
                    month = as.numeric(strftime(date, '%m')), 
                    year = as.numeric(strftime(date, '%Y'))
   )
   to_plo <- dat_in
+  
+  # assign name of covariate in input data with generic flo
+  names(to_plo)[names(to_plo) %in% cvr] <- 'flo'
+  names(dat_in)[names(dat_in) %in% cvr] <- 'flo'
   
   # flo values to predict
   flo_vals <- range(to_plo[, 'flo'], na.rm = TRUE)
@@ -30,16 +35,24 @@ dynagam <- function(mod_in, dat_in, grd = 30, years = NULL, alpha = 1,
     matrix(., nrow = nrow(to_plo), ncol = grd) %>% 
     cbind(to_plo[, c('dec_time', 'doy')], .) %>%
     gather('split', 'flo', -dec_time, -doy) %>% 
-    select(-split) %>% 
-    data.frame(., res = predict(mod_in, .)) %>% 
+    select(-split)
+  names(dynadat)[names(dynadat) %in% 'flo'] <- cvr
+  dynadat <- data.frame(dynadat, res = predict(mod_in, newdata = dynadat)) 
+  names(dynadat)[names(dynadat) %in% cvr] <- 'flo'
+  dynadat <- dynadat %>% 
     spread(flo, res) %>% 
-    select(-dec_time, -doy)
-  
-  # merge predictions with year, month data, make long format
-  to_plo <- select(to_plo, year, month) %>% 
-    cbind(., dynadat) %>% 
+    select(-doy)
+  dynadat <- dynadat %>% 
+    mutate(
+      date = date_decimal(dec_time),
+      year = year(date),
+      month = month(date)
+    ) %>%  
+    select(-date, -dec_time) %>% 
     gather('flo', 'res', -year, -month) %>% 
     mutate(flo = as.numeric(as.character(flo)))
+  
+  to_plo <- dynadat
   
   # subset years to plot
   if(!is.null(years)){
@@ -113,19 +126,16 @@ dynagam <- function(mod_in, dat_in, grd = 30, years = NULL, alpha = 1,
   # return bare bones if FALSE
   if(!pretty) return(p + geom_line())
   
-  # colors, uses gradcols from WRTDStidal
-  cols <- gradcols(col_vec = col_vec)
-  
   # chllab function from WRTDStidal
-  ylabel <- chllab(TRUE)
+  ylabel <- 'log10(chl)'
   
   # use bw theme
-  if(use_bw) p <- p + theme_bw()
+  if(use_bw) p <- p + theme_bw(base_family = 'serif', base_size = 16)
   
   p <- p + 
     geom_line(size = size, aes(colour = year), alpha = alpha) +
     scale_y_continuous(ylabel, expand = c(0, 0)) +
-    scale_x_continuous('lnQ', expand = c(0, 0)) +
+    scale_x_continuous(cvr, expand = c(0, 0)) +
     theme(
       legend.position = 'top'
     ) +
