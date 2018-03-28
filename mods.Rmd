@@ -309,6 +309,13 @@ renderPlot({
     ggtitle(paste0('Station', input$sta))
   p
 })
+renderPlot({
+  md <- mods() %>% 
+    filter(modi %in% input$mod) %>% 
+    .$modv %>% 
+    .[[1]] 
+  gam.check(md)
+})
 ```
 
 ## GAMs of log-chlorophyll with annual, seasonal, salinity trends, station 32 only
@@ -460,6 +467,13 @@ renderPlot({
       ) + 
     ggtitle('Station32')
   p
+})
+renderPlot({
+  md <- modonest %>% 
+    filter(modi %in% input$mod) %>% 
+    .$modv %>% 
+    .[[1]] 
+  gam.check(md)
 })
 # dynagam
 renderPlot({
