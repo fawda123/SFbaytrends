@@ -10,4 +10,4 @@ Files in `/data` were created in`R/dat_proc.R`
 
 * `modssta.RData` Nested model data for all stations evaluating log-chl by different combinations of smoothers for season, time
 
-* `sta32.RData` Nested model data for station 32 evaluationg log-chl by different combinations of smoothers for season, time, salnity
+* `sta32.RData` Nested model data for station 32 evaluationg log-chl by different combinations of smoothers for season, time, salinity

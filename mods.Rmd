@@ -78,7 +78,8 @@ Plots for raw data, all stations and parameters, 1990 - 2017.  Select the parame
 selectInput("prm", "Choose parameter:", unique(datprc$param))
 selectInput("typ", "Choose plot type:", c('tot', 'yrs', 'mos'))
 selectInput("log", "Log-space:", c(T, F))
-
+```
+```{r}
 # get the plot
 toplo <- reactive({
 
@@ -169,7 +170,8 @@ Select station for summary of all seven GAM chlorophyll models:
 ```{r, echo = F}
 # selection widgets
 selectInput("sta", "Choose station:", unique(datprc$station))
-
+```
+```{r}
 mods <- reactive({
   modssta %>% filter(station %in% input$sta)
 })
@@ -312,46 +314,46 @@ renderPlot({
 ## GAMs of log-chlorophyll with annual, seasonal, salinity trends, station 32 only
 
 ```{r}
-# # get GAMs for each station, simple models with different combos of dec_time, doy
-# 
-# # smooths to evaluate
-# smths <- c(
-#   "s(dec_time, bs = 'tp')",  
-#   "s(doy, bs = 'cc')",
-#   "s(sal, bs = 'tp')",
-#   "te(sal, doy, bs = c('tp', 'cc'))", 
-#   "te(sal, dec_time, bs = c('tp', 'tp'))",
-#   "te(dec_time, doy, bs = c('tp', 'cc'))",
-#   "te(dec_time, doy, sal, bs = c('tp', 'cc', 'tp'))"
-# )
-# 
-# # get all combinations of smoothers to model, one to many
-# frms <- list()
-# for(i in seq_along(smths)){
-#   
-#  frm <- combn(smths, i) %>%
-#     apply(2, function(x){
-#       paste(x, collapse = ' + ') %>% 
-#         paste('log10(chl) ~ ', .) %>% 
-#         formula
-#     }) 
-#   
-#  frms <- c(frms, frm)
-#  
-# }
-# 
-# # enframe frms for combine with tomod
-# frms <- frms %>% 
-#   enframe('modi', 'frm')
-# 
-# # data to model, same as datprc, params in wide format, nested by station
-# # crossed with frms
-# tomod <- datprc %>% 
-#   spread(param, value) %>% 
-#   group_by(station) %>% 
-#   nest %>% 
-#   crossing(frms)
-# 
+# get GAMs for each station, simple models with different combos of dec_time, doy
+
+# smooths to evaluate
+smths <- c(
+  "s(dec_time, bs = 'tp')",
+  "s(doy, bs = 'cc')",
+  "s(sal, bs = 'tp')",
+  "te(sal, doy, bs = c('tp', 'cc'))",
+  "te(sal, dec_time, bs = c('tp', 'tp'))",
+  "te(dec_time, doy, bs = c('tp', 'cc'))",
+  "te(dec_time, doy, sal, bs = c('tp', 'cc', 'tp'))"
+)
+
+# get all combinations of smoothers to model, one to many
+frms <- list()
+for(i in seq_along(smths)){
+
+ frm <- combn(smths, i) %>%
+    apply(2, function(x){
+      paste(x, collapse = ' + ') %>%
+        paste('log10(chl) ~ ', .) %>%
+        formula
+    })
+
+ frms <- c(frms, frm)
+
+}
+
+# enframe frms for combine with tomod
+frms <- frms %>%
+  enframe('modi', 'frm')
+
+# data to model, same as datprc, params in wide format, nested by station
+# crossed with frms
+tomod <- datprc %>%
+  spread(param, value) %>%
+  group_by(station) %>%
+  nest %>%
+  crossing(frms)
+
 # # create models for every station, gam model eval
 # modsstacv <- tomod %>% 
 #   mutate(
@@ -370,7 +372,7 @@ renderPlot({
 ```
 
 Summary of all model combinations at station 32:
-```{r, echo = F, eval = T}
+```{r}
 
 modonest <- sta32
 
@@ -394,7 +396,7 @@ renderDataTable({
 }, options = list(pageLength = 10))
 ```
 
-```{r, eval = T}
+```{r}
 # prediction data
 prdplost <- modonest %>%
   mutate(prddat = pmap(list(data, modv), function(data, modv){
@@ -411,10 +413,10 @@ prdplost <- modonest %>%
 ```
 
 View results for one model at a time:
-```{r, echo = F, eval = T}
+```{r, echo = F}
 selectInput('modst', "Select a model:", modonest$modi)
 ```
-```{r, eval = T}
+```{r}
 # smoother stats of GAMs
 renderTable({
   
