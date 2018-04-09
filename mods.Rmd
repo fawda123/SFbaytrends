@@ -502,7 +502,9 @@ renderPlotly({
     aspectratio = list(x = 0.5, y = 1, z = 0.4), 
     xaxis = list(title = 'Salinity'), 
     yaxis = list(title = 'Time'), 
-    zaxis = list(title = 'log-Chl')
+    zaxis = list(title = 'log-Chl'),
+    roughness = .01,
+    ambient = 0.9
   )
   
   p <- plot_ly(z = ~tosrf) %>% 
