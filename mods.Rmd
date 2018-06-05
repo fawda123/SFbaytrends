@@ -325,7 +325,7 @@ renderPlot({
     .$modv %>% 
     .[[1]] 
   gam.check(md)
-})
+}, height = 550)
 renderPlot({
   
   toplo <- prdplo() %>% 
@@ -340,7 +340,7 @@ renderPlot({
       legend.position = 'top', 
       legend.title = element_blank()
       ) + 
-    ggtitle(paste0('Station', input$sta, ', Model', input$mod))
+    ggtitle(paste0('Station', input$sta, ', Model ', input$mod))
   p
 })
 ```
