@@ -251,7 +251,7 @@ renderPlot({
     guides(colour = guide_colourbar(barheight = 1, barwidth = 20)) + 
     ggtitle(paste0('Station', input$sta))
   p
-}, height = 500, width = 900)
+}, height = 400, width = 900)
 
 # plot predictions, all mods, by time
 renderPlot({
@@ -302,6 +302,13 @@ renderTable({
   
 })
 renderPlot({
+  md <- mods() %>% 
+    filter(modi %in% input$mod) %>% 
+    .$modv %>% 
+    .[[1]] 
+  gam.check(md)
+})
+renderPlot({
   
   toplo <- prdplo() %>% 
     filter(modi %in% input$mod)
@@ -315,15 +322,8 @@ renderPlot({
       legend.position = 'top', 
       legend.title = element_blank()
       ) + 
-    ggtitle(paste0('Station', input$sta))
+    ggtitle(paste0('Station', input$sta, ', Model', input$mod))
   p
-})
-renderPlot({
-  md <- mods() %>% 
-    filter(modi %in% input$mod) %>% 
-    .$modv %>% 
-    .[[1]] 
-  gam.check(md)
 })
 ```
 
@@ -337,7 +337,7 @@ prdplost <- reactive({
 
       data <- data$date %>% 
         range(na.rm  = T)
-      data <- seq.Date(data[1], data[2], by = 'days') %>% 
+      data <- seq.Date(floor_date(data[1], 'month'), ceiling_date(data[2], 'month'), by = 'days') %>% 
         tibble(date = .) %>% 
         mutate(
           doy = yday(date), 
@@ -358,6 +358,27 @@ prdplost <- reactive({
   
 })
 ```
+
+```{r}
+renderPlot({
+  
+  toplo <- prdplost() %>% 
+    mutate(day = day(date)) %>% 
+    filter(day %in% 1) %>% 
+    mutate(month = month(date, label = T))
+  
+  # plot
+  p <- ggplot(toplo, aes(x = date)) + 
+    geom_point(data = rawchl(), aes(y = log10(chl)), size = 0.5) +
+    geom_line(aes(y = chl, group = month, colour = month), size = 1, alpha = 0.7) + 
+    theme_bw(base_family = 'serif', base_size = 16) + 
+    theme(
+      legend.position = 'top'
+      ) 
+  p
+})
+```
+
 
 ```{r, out.width = "100%"}
 renderPlotly({
