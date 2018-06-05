@@ -1,5 +1,5 @@
 ---
-title: "GAM evaluation - SF Bay"
+title: "GAM evaluation - SF South Bay"
 output: 
   html_document:
     code_folding: hide
@@ -72,7 +72,8 @@ rawplo <- datprc %>%
   )
 ```
 
-Plots for raw data, all stations and parameters, 1990 - 2017.  Select the parameter, plot type (total time series, by year, or by month), and variable transformation.
+The following plots show the raw data for all monitoring stations and parameters in South Bay, 1990 - 2017.  Select the parameter, plot type (total time series, by year, or by month), and variable transformation.  The year and month plots are aggregated boxplots of all observations at a station for each selected time period.  The variable transformation can be used to show the observations in arithmetic or logarithmic space.
+
 ```{r, echo = F}
 # selection widgets
 selectInput("prm", "Choose parameter:", unique(datprc$param))
@@ -170,7 +171,22 @@ tomod <- datprc %>%
 # save(modssta, file = 'data/modssta.RData', compress = 'xz')
 ```
 
-Select station for summary of all three GAM chlorophyll models:
+Generalized additive models (GAMs) were developed to describe trends in chlorophyll-a at each of the monitoring stations in South Bay.  The station and selected model can be chosen from the drop down menus.  Three types of GAMs were developed for the time series at each station to model chlorophyll as a function of time, where time is measured as an annual and seasonal effect.  The three models descibe the time components differently and represent increasing levels of complexity to describe the chlorophyll trend:
+
+* `gam0`: chl ~ year + s(doy)
+
+* `gam1`: chl ~ year + s(doy) + s(year)
+
+* `gam2`: chl ~ year + s(doy) + s(year) + ti(doy, year)
+
+For all models, `year` is measured as a continuous numeric variable for the annual effect (e.g., January 1st, 2000 is 2000.0, July 1st, 2000 is 2000.5, etc.) and `doy` is the day of year as a numeric value from 1 to 366.  All models include `year` as a linear effect.  The functions `s()` model either `year` or `doy` as a smoothed, non-linear variable and `ti()` models the interaction between the two.
+
+__Select the station with the drop down menu for the summary of all three GAM chlorophyll models.__  
+
+The first table shows the individual effects of the modelled components of each model as the estimated degrees of freedom (`edf`), the reference degrees of freedom (`Ref.df`), the test statistic (`F`), and significance of the component (`p-value`).  The significance of the component is in part based on the difference between `edf` and `Ref.df`.  The second table shows the overall summary of each model as Akaike Information Criterion (`AIC`), the generalized cross-validation score (`GCV`), and the `R2` values.  Lower values for `AIC` and `GCV` and higher values for `R2` indicate improved model fit.  
+
+The two plots show the predicted trends from each of the three models.  The first plot shows estimed chlorophyll by day of year with separate lines for each year.  The second plot show predictions for the three models across the entire time series. 
+
 ```{r, echo = F}
 # selection widgets
 selectInput("sta", "Choose station:", unique(datprc$station))
@@ -269,7 +285,9 @@ renderPlot({
 })
 ```
 
-### Individual model for selected station:
+### Individual model for selected station: `r renderText({input$sta})`
+
+The following provides additional information for one of the three models for the selected station.  __Use the drop down menu to select a specific model.__  The tables repeat the information above but only for the selected model.  The four plots show 1) plot diagnostics of the model fit, 2) the predicted trends across the time series, 3) the predicted trends with separate lines for each month across the time series, and 4) a three-dimensional fit of the estimate trends across year and day of year with the z-axis showing estimated chlorophyll. 
 
 ```{r, echo = F}
 selectInput('mod', "Select a model:", unique(modssta$modi))
@@ -364,7 +382,7 @@ renderPlot({
   
   toplo <- prdplost() %>% 
     mutate(day = day(date)) %>% 
-    filter(day %in% 1) %>% 
+    filter(day %in% c(1)) %>% 
     mutate(month = month(date, label = T))
   
   # plot
