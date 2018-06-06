@@ -275,14 +275,18 @@ renderPlot({
   p <- ggplot(prdplo(), aes(x = date)) + 
     geom_point(data = rawchl(), aes(y = log10(chl)), size = 0.5) +
     geom_line(aes(y = chl, colour = factor(modi))) + 
+    stat_smooth(aes(y = chl, group = modi), se = F, method = "loess", color = 'black', alpha = 0.7) +
+    facet_wrap(~modi, ncol = 1) +
     theme_bw(base_family = 'serif', base_size = 16) + 
     theme(
       legend.position = 'top', 
-      legend.title = element_blank()
+      legend.title = element_blank(),
+      strip.text = element_blank(), 
+      strip.background = element_blank()
       ) + 
     ggtitle(paste0('Station', input$sta))
   p
-})
+}, height = 600)
 ```
 
 ### Individual model for selected station: `r renderText({input$sta})`
@@ -349,7 +353,7 @@ renderPlot({
 # prediction data
 prdplost <- reactive({
   
-  mods() %>% 
+  outprd <- mods() %>% 
     filter(modi %in% input$mod) %>%
     mutate(prddat = pmap(list(data, modv), function(data, modv){
 
@@ -373,6 +377,8 @@ prdplost <- reactive({
   select(modi, prddat) %>% 
   unnest %>% 
   select(-modi)
+  
+  return(outprd)
   
 })
 ```
@@ -401,7 +407,7 @@ renderPlot({
 ```{r, out.width = "100%"}
 renderPlotly({
   
-  tosrf <- prdplost() %>% 
+  logchl <- prdplost() %>% 
     select(-date, -dec_time) %>% 
     spread(yr, chl) %>% 
     select(-doy) %>% 
@@ -417,7 +423,7 @@ renderPlotly({
     ambient = 0.9
   )
   
-  p <- plot_ly(z = ~tosrf) %>% 
+  p <- plot_ly(z = ~logchl, height = 600) %>% 
     add_surface(colors = rev(RColorBrewer::brewer.pal(11, 'Spectral'))) %>% 
     layout(scene = scene)
   p
