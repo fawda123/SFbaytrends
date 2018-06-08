@@ -22,8 +22,6 @@ library(plotly)
 
 source('R/funcs.R')
 
-tags$head(includeScript("google-analytics.js"))
-
 data(datprc)
 data(modssta)
 ```
@@ -78,6 +76,7 @@ The following plots show the raw data for all monitoring stations and parameters
 
 ```{r, echo = F}
 # selection widgets
+tags$head(includeScript("google-analytics.js"))
 selectInput("prm", "Choose parameter:", unique(datprc$param))
 selectInput("typ", "Choose plot type:", c('tot', 'yrs', 'mos'))
 selectInput("log", "Log-space:", c(T, F))
