@@ -22,6 +22,8 @@ library(plotly)
 
 source('R/funcs.R')
 
+tags$head(includeScript("google-analytics.js"))
+
 data(datprc)
 data(modssta)
 ```
