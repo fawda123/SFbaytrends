@@ -7,3 +7,11 @@
 
   ga('create', 'UA-120564818-1', 'auto');
   ga('send', 'pageview');
+  
+$(document).on('change', 'select', function(e) {
+    ga('send', 'event', 'widget', 'select data', $(e.currentTarget).val());
+  });
+  
+$(document).on('click', 'button', function() {
+  ga('send', 'event', 'button', 'plot data');
+});
