@@ -3,6 +3,10 @@
 
 library(tidyverse)
 library(lubridate)
+library(sf)
+
+######
+# wq data
 
 dat <- read.csv('raw/df_18_36.csv', stringsAsFactors = F)
 
@@ -22,3 +26,16 @@ datprc <- dat %>%
   filter(!param %in% 'd_chl')
   
 save(datprc, file = 'data/datprc.RData', compress = 'xz')
+
+######
+# station lat/lon
+
+prj <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+
+data(datprc)
+
+locs <- read.csv('ignore/usgs_station_lat_lon.csv') %>% 
+  filter(Station %in% datprc$station) %>% 
+  st_as_sf(coords = c('lon', 'lat'), crs = prj)
+
+save(locs, file = 'data/locs.RData', compress = 'xz')

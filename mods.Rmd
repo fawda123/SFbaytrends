@@ -2,28 +2,42 @@
 title: "GAM evaluation - SF South Bay"
 output: 
   html_document:
-    code_folding: hide
     css: kable.css
 self_contained: yes
 runtime: shiny
 ---
 <a href="https://github.com/fawda123/SFBaytrends/" class="github-corner" aria-label="View source on Github"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#FD6C6C; color:#fff; position: absolute; top: 0; border: 0; left: 0; transform: scale(-1, 1);" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
 
-```{r, message = F, warning = F, results = 'hide'}
+```{r, message = F, warning = F, results = 'hide', echo = F}
 # globals
 library(knitr)
-opts_chunk$set(warning = FALSE, message = FALSE, dev.args = list(bg = 'transparent'), eval = T)
+opts_chunk$set(warning = FALSE, message = FALSE, dev.args = list(bg = 'transparent'), eval = T, echo = F)
+
+tags$head(includeScript("google-analytics.js"))
 
 library(tidyverse)
 library(lubridate)
 library(mgcv)
 library(shiny)
 library(plotly)
+library(ggmap)
+library(gridExtra)
 
 source('R/funcs.R')
 
 data(datprc)
 data(modssta)
+data(locs)
+data(map)
+
+# ext <- make_bbox(locs$lon, locs$lat, f = 0.2)
+# map <- get_stamenmap(ext,  zoom = 11, maptype = "toner-lite", where = getwd())
+pbase <- ggmap(map) +
+  theme_bw() +
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank()
+  )
 ```
 
 ## Exploratory plots
@@ -32,7 +46,8 @@ data(modssta)
 # create plots for whole time series, by year, by month
 # all variables, stations
 rawplo <- datprc %>% 
-  group_by(param) %>% 
+  filter(param %in% 'chl') %>% 
+  group_by(station) %>% 
   nest %>% 
   mutate(
     tot = map(data, function(x){
@@ -40,7 +55,6 @@ rawplo <- datprc %>%
       p <- ggplot(x, aes(x = dec_time, y = value)) + 
         geom_line() +
         theme_bw(base_family = 'serif') +
-        facet_wrap(~ station, ncol = 2) +
         theme(strip.background = element_blank())
       
       return(p)
@@ -52,7 +66,6 @@ rawplo <- datprc %>%
         geom_boxplot(base_family = 'serif') +
         theme_bw(base_family = 'serif') +
         scale_x_discrete("Year") +
-        facet_wrap(~ station, ncol = 2) +
         theme(strip.background = element_blank())
       
       return(p)
@@ -63,7 +76,6 @@ rawplo <- datprc %>%
       p <- ggplot(x, aes(x = mo, y = value)) + 
         geom_boxplot() +
         theme_bw() +
-        facet_wrap(~ station, ncol = 2) +
         theme(strip.background = element_blank())
       
       return(p)
@@ -76,27 +88,28 @@ The following plots show the raw data for all monitoring stations and parameters
 
 ```{r, echo = F}
 # selection widgets
-tags$head(includeScript("google-analytics.js"))
-selectInput("prm", "Choose parameter:", unique(datprc$param))
-selectInput("typ", "Choose plot type:", c('tot', 'yrs', 'mos'))
-selectInput("log", "Log-space:", c(T, F))
+column(4, selectInput("station", "Choose station:", unique(datprc$station)))
+column(4, selectInput("typ", "Choose plot type:", c('tot', 'yrs', 'mos')))
+column(4, selectInput("log", "Log-space:", c(T, F)))
 ```
+
 ```{r}
 # get the plot
 toplo <- reactive({
 
-  sel <- filter(rawplo, param %in% input$prm) %>% 
+  sel <- rawplo %>% 
+    filter(station %in% input$station) %>% 
     select(matches(input$typ)) %>% 
     .[[1]] %>% 
     .[[1]]
   
   if(input$log){
   
-    sel <- sel + scale_y_log10(input$prm)
+    sel <- sel + scale_y_log10('chl')
     
   } else {
     
-    sel <- sel + scale_y_continuous(input$prm)
+    sel <- sel + scale_y_continuous('chl')
     
   }
   
@@ -107,9 +120,21 @@ toplo <- reactive({
 # make the plot
 renderPlot({
   
-  toplo()
+  # inputs
+  station <- input$station
+  toplo <- toplo() + 
+    theme(axis.title.x = element_blank())
   
-}, height = 800, width = 900)
+  locpt <- locs %>% 
+    filter(Station %in% station)
+  
+  p1 <- pbase + 
+    geom_point(data = locpt, aes(x = lon, y = lat), colour = 'tomato1', size = 8) +
+    geom_text(data = locs, aes(x = lon, y = lat, label = Station))
+
+  grid.arrange(p1, toplo, widths = c(0.3, 0.7), ncol = 2)
+  
+}, height = 300, width = 900)
 
 ```
 
@@ -430,3 +455,7 @@ renderPlotly({
   p
   
 })
+```
+
+
+### Evaluate k smoothers 
