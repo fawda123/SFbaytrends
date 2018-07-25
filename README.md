@@ -10,5 +10,7 @@ Files in `/data` were created in`R/dat_proc.R`
 
 * `locs.RData` sf object of station lat/lon, filtered by those in `datrpc`
 
+* `map.RData` ggmap object for basemap 
+
 * `modssta.RData` Nested model data for all stations evaluating log-chl by different combinations of smoothers for season, time
 

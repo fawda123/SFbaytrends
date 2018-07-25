@@ -35,7 +35,6 @@ prj <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
 data(datprc)
 
 locs <- read.csv('ignore/usgs_station_lat_lon.csv') %>% 
-  filter(Station %in% datprc$station) %>% 
-  st_as_sf(coords = c('lon', 'lat'), crs = prj)
+  filter(Station %in% datprc$station)
 
 save(locs, file = 'data/locs.RData', compress = 'xz')

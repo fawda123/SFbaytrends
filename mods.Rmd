@@ -171,18 +171,19 @@ tomod <- datprc %>%
 #       # get upper bounds of knots
 #       gamk1 <- data$yr %>%
 #         unique %>%
-#         length
-#       gamk1 <- round(gamk1 * 2 / 3, 0) %>% 
+#         length %>% 
+#         `*`(2 / 3) %>% 
+#         round(0) %>% 
 #         pmax(10, .)
 # 
 #       # insert upper gamk1 if applicable
 #       if(grepl('s\\(dec_time', frm)){
 #         p1 <- gsub('(^.*)s\\(dec\\_time\\).*$', '\\1', frm)
 #         p3 <-  gsub('^.*s\\(dec\\_time\\)(.*)$', '\\1', frm)
-#         p2 <- paste0('s(dec_time, k = ', gamk1, ')') 
+#         p2 <- paste0('s(dec_time, k = ', gamk1, ')')
 #         frm <- paste0(p1, p2, p3)
 #       }
-#       
+# 
 #       gam(as.formula(frm),
 #         knots = list(doy = c(1, 366)),
 #         data = data,
@@ -192,7 +193,7 @@ tomod <- datprc %>%
 # 
 #   })
 #   )
-# modssta <- modssta %>% 
+# modssta <- modssta %>%
 #   mutate(modi = factor(modi, levels = c(1, 2, 3), labels = c('gam0', 'gam1', 'gam2')))
 # save(modssta, file = 'data/modssta.RData', compress = 'xz')
 ```
@@ -213,13 +214,9 @@ The first table shows the individual effects of the modelled components of each 
 
 The two plots show the predicted trends from each of the three models.  The first plot shows estimed chlorophyll by day of year with separate lines for each year.  The second plot show predictions for the three models across the entire time series. 
 
-```{r, echo = F}
-# selection widgets
-selectInput("sta", "Choose station:", unique(datprc$station))
-```
 ```{r}
 mods <- reactive({
-  modssta %>% filter(station %in% input$sta)
+  modssta %>% filter(station %in% input$station)
 })
 
 # smoother stats of GAMs
@@ -273,6 +270,8 @@ prdplo <- reactive({
     select(modi, prddat) %>% 
     unnest
   
+  return(prdplo)
+  
 })
 
 rawchl <- reactive({
@@ -291,7 +290,7 @@ renderPlot({
     scale_y_continuous('log10(chl)') +
     facet_wrap(~ modi, ncol = 3) +
     guides(colour = guide_colourbar(barheight = 1, barwidth = 20)) + 
-    ggtitle(paste0('Station', input$sta))
+    ggtitle(paste0('Station', input$station))
   p
 }, height = 400, width = 900)
 
@@ -310,12 +309,14 @@ renderPlot({
       strip.text = element_blank(), 
       strip.background = element_blank()
       ) + 
-    ggtitle(paste0('Station', input$sta))
+    ggtitle(paste0('Station', input$station))
   p
 }, height = 600)
 ```
 
-### Individual model for selected station: `r renderText({input$sta})`
+### Individual model for selected station
+
+__Selected station:  `r renderText({input$station})`__
 
 The following provides additional information for one of the three models for the selected station.  __Use the drop down menu to select a specific model.__  The tables repeat the information above but only for the selected model.  The four plots show 1) plot diagnostics of the model fit, 2) the predicted trends across the time series, 3) the predicted trends with separate lines for each month across the time series, and 4) a three-dimensional fit of the estimate trends across year and day of year with the z-axis showing estimated chlorophyll. 
 
@@ -370,7 +371,7 @@ renderPlot({
       legend.position = 'top', 
       legend.title = element_blank()
       ) + 
-    ggtitle(paste0('Station', input$sta, ', Model ', input$mod))
+    ggtitle(paste0('Station', input$station, ', Model ', input$mod))
   p
 })
 ```
@@ -429,7 +430,6 @@ renderPlot({
 })
 ```
 
-
 ```{r, out.width = "100%"}
 renderPlotly({
   
@@ -457,5 +457,161 @@ renderPlotly({
 })
 ```
 
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
 
 ### Evaluate k smoothers 
+
+This section applies only to gam1 and gam2 models that include the `s(year)` smoother. Choose the station at the top of this page then select the model (gam1 or gam2) and the two k values to compare.  The default values are ten and 2/3 times the number of years in the record for the selected station.
+
+__Selected station: `r renderText({input$station})`__
+
+```{r}
+column(4, selectInput('gamtyp', 'Select gam type:', 
+                      choices = list(
+                        gam1 = "log10(chl) ~ dec_time + s(dec_time) + s(doy, bs = 'cc')", 
+                        gam2 = "log10(chl) ~ dec_time + s(dec_time) + s(doy, bs = 'cc') + ti(dec_time, doy, bs = c('tp', 'cc'))" 
+                          )
+                      )
+       )
+column(4, numericInput('gamk1_1', 'First comparison for k:', value = 10))
+column(4,
+       renderUI({
+         
+         # unique years x 2/3
+         yrs <- mods()$data[[1]] %>% pull(yr) %>% unique %>% length %>% `*` (2/3) %>% round(0)
+         
+         numericInput('gamk1_2', 'First comparison for k:', value = yrs)
+         
+         })
+)
+```
+
+```{r}
+# k1 comparisons, models only
+modsk1 <- reactive({
+  
+  req(input$gamk1_2)
+  
+  # inputs
+  gamtyp <- input$gamtyp
+  gamk1_1 <- input$gamk1_1
+  gamk1_2 <- input$gamk1_2
+  mods <- mods()
+  
+  # get model formula for correct mod type, by knot selection
+  p1 <- gsub('(^.*)s\\(dec\\_time\\).*$', '\\1', gamtyp)
+  p3 <-  gsub('^.*s\\(dec\\_time\\)(.*)$', '\\1', gamtyp)
+  frms <- sapply(c(gamk1_1, gamk1_2), function(x){
+    p2 <- paste0('s(dec_time, k = ', x, ')')
+    paste0(p1, p2, p3)
+  })
+  
+  # two compared models wiht different k
+  modsk1 <- mods$data[[1]] %>% 
+    crossing(frms = frms, data = .) %>% 
+    group_by(frms) %>% 
+    nest %>% 
+    mutate(
+      modv = pmap(list(frms, data), function(frms, data){
+        
+        gam(as.formula(frms),
+          knots = list(doy = c(1, 366)),
+          data = data,
+          na.action = na.exclude,
+          select = T
+        )
+        
+      })
+      
+    )
+
+  return(modsk1)
+
+})
+```
+
+```{r}
+# prediction data for gamk1 comparisons
+prdplok1 <- reactive({
+  
+  req(modsk1())
+
+  prdplok1 <- modsk1() %>%
+    mutate(prddat = pmap(list(data, modv), function(data, modv){
+  
+      prddat <- data.frame(
+          dec_time = seq(min(data$dec_time), max(data$dec_time), length = 1000)
+        ) %>%
+        mutate(
+          date = date_decimal(dec_time),
+          date = as.Date(date),
+          mo = month(date, label = TRUE),
+          doy = yday(date),
+          yr = year(date)
+        )
+  
+      prd <- predict(modv, newdata = prddat)
+      
+      prddat <- prddat %>% mutate(chl = prd)
+  
+      return(prddat)
+      
+    })) %>% 
+    select(-data, -modv) %>% 
+    unnest
+
+  return(prdplok1)
+  
+})
+
+```
+
+```{r}
+# summary stats of two k comparisons
+renderTable({
+
+  # inputs
+  gamk1_1 <- input$gamk1_1
+  gamk1_2 <- input$gamk1_2
+  
+  map(modsk1()$modv, ~ data.frame(
+      AIC = AIC(.x), 
+      GCV = .x$gcv.ubre,
+      R2 = summary(.x)$r.sq)) %>% 
+    enframe %>% 
+    rename(model = name) %>% 
+    mutate(model = factor(model, levels = c(1, 2), labels = c(gamk1_1, gamk1_2))) %>%
+    unnest
+  
+})
+```
+
+```{r}
+# facet by mod, doy x axis, lines by year
+renderPlot({
+
+  req(prdplok1())
+  rawchl <- modsk1()$data[[1]]
+
+  p <- ggplot() + 
+    geom_point(data = rawchl, aes(x = dec_time, y = log10(chl)), size = 0.5) +
+    geom_line(data = prdplok1(), aes(x = dec_time, group = factor(frms), colour = frms, y = chl)) + 
+    theme_bw(base_family = 'serif', base_size = 16) + 
+    theme(
+      legend.position = 'top', 
+      legend.title = element_blank()
+      ) + 
+    scale_y_continuous('log10(chl)') +
+    guides(colour = guide_legend(ncol = 1)) +
+    ggtitle(paste0('Station', input$station))
+  p
+}, height = 400, width = 900)
+
