@@ -100,4 +100,9 @@ modkcmp <- datprc %>%
     })
   )
 
+# keep summaries only, otherwise huge
+modkcmp <- modkcmp %>% 
+  select(-data, -frm, -modv) %>% 
+  unnest
+
 save(modkcmp, file = 'data/modkcmp.RData', compress = 'xz')

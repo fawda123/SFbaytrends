@@ -12,5 +12,7 @@ Files in `/data` were created in`R/dat_proc.R`
 
 * `map.RData` ggmap object for basemap 
 
+* `modkcmp.RData` Summary data of comparison for many k values, gam1 and gam2, all stations
+
 * `modssta.RData` Nested model data for all stations evaluating log-chl by different combinations of smoothers for season, time
 
