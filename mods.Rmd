@@ -648,3 +648,26 @@ renderPlot({
   
 }, height = 320, width = 900)
 ```
+
+### Estimate percent change 
+
+```{r}
+
+library(tidyverse)
+library(mgcv)
+library(tidyverse)
+source('R/funcs.R')
+
+data(modssta)
+
+sta <- 21
+gamtyp <- 'gam2'
+
+toeval <- modssta %>% 
+  filter(station %in% sta & modi %in% gamtyp)
+
+modv <- toeval$modv[[1]]
+
+gamdiff(modv)
+```
+
