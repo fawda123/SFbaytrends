@@ -623,6 +623,8 @@ renderPlot({
   # inputs
   station <- input$station
   gamtyp <- input$gamtyp
+  gamk1_1 <- input$gamk1_1
+  gamk1_2 <- input$gamk1_2
   
   # subset all by correct gamtyp
   if(grepl('ti\\(', gamtyp)) 
@@ -630,12 +632,18 @@ renderPlot({
   else 
     gamtyp <- 'gam1'
   
+  # all pts
   toplo <- modkcmp %>% 
     filter(station %in% input$station) %>% 
     filter(modi %in% gamtyp)
   
+  # only those for selected
+  toplo2 <- toplo %>% 
+    filter(ks %in% c(gamk1_1, gamk1_2))
+  
   p <- ggplot(toplo, aes(x = ks, y = AIC)) + 
-    geom_point(size = 3, pch = 21, fill = 'grey', color = 'black') + 
+    geom_point(size = 2.5, pch = 21, fill = 'grey', color = 'black') + 
+    geom_point(data = toplo2, pch = 21, fill = 'tomato1', color = 'black', size = 4) +
     theme_bw(base_family = 'serif', base_size = 16) + 
     theme(
       strip.background = element_blank(), 
