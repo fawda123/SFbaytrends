@@ -156,7 +156,13 @@ dynagam <- function(mod_in, dat_in, cvr, grd = 30, years = NULL, alpha = 1,
   
 }
 
+######
 # estimate percent change trends for selected time periods
+# taken from baytrends gamDiff function
+# 
+# @param modv gam model
+# @param base.yr.set vector of starting years, defaults to first year plus one
+# @param test.yr.set vector of ending years, default to last year minus one
 gamdiff <- function(modv, base.yr.set = NA, test.yr.set = NA){
   
   # input data used to create model
@@ -247,7 +253,9 @@ gamdiff <- function(modv, base.yr.set = NA, test.yr.set = NA){
   diff.est.obs <- per.mn.obs[2] - per.mn.obs[1]
   
   # pack up and return results ####
-  gamDiff.tmp <- list(base.yr    = base.yr.set, # years in first baseline set
+  gamDiff.tmp <- list(
+                      pdat = pdat, # data used for prediction to get estimates
+                      base.yr    = base.yr.set, # years in first baseline set
                       test.yr    = test.yr.set, # years in second baselin set
                       per.mn     = as.vector(period.avg), # means by period, analyzed units
                       per.mn.obs = as.vector(per.mn.obs), # means by period, observed units
@@ -261,5 +269,18 @@ gamdiff <- function(modv, base.yr.set = NA, test.yr.set = NA){
   )
   
   return(gamDiff.tmp)
+  
+}
+
+# function for formatting p-values in tables
+p_ast <- function(x){
+  
+  sig_cats <- c('**', '*', 'ns')
+  sig_vals <- c(-Inf, 0.005, 0.05, Inf)
+  
+  out <- cut(x, breaks = sig_vals, labels = sig_cats, right = FALSE)
+  out <- as.character(out)
+  
+  return(out)
   
 }

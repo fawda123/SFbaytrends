@@ -22,6 +22,7 @@ library(shiny)
 library(plotly)
 library(ggmap)
 library(gridExtra)
+library(shinyWidgets)
 
 source('R/funcs.R')
 
@@ -89,7 +90,7 @@ The following plots show the raw data for all monitoring stations and parameters
 
 ```{r, echo = F}
 # selection widgets
-column(4, selectInput("station", "Choose station:", unique(datprc$station)))
+column(4, selectInput("station", "Choose station:", sort(unique(datprc$station))))
 column(4, selectInput("typ", "Choose plot type:", c('tot', 'yrs', 'mos')))
 column(4, selectInput("log", "Log-space:", c(T, F)))
 ```
@@ -315,11 +316,11 @@ renderPlot({
 }, height = 600)
 ```
 
-### Individual model for selected station
+### Individual model for selected station and trend assessment
 
 __Selected station:  `r renderText({input$station})`__
 
-The following provides additional information for one of the three models for the selected station.  __Use the drop down menu to select a specific model.__  The tables repeat the information above but only for the selected model.  The four plots show 1) plot diagnostics of the model fit, 2) the predicted trends across the time series, 3) the predicted trends with separate lines for each month across the time series, and 4) a three-dimensional fit of the estimate trends across year and day of year with the z-axis showing estimated chlorophyll. 
+The following provides additional information for one of the three models for the selected station.  __Use the drop down menu to select a specific model.__  The tables repeat the information above but only for the selected model.  The four plots show 1) plot diagnostics of the model fit, 2) the predicted trends across the time series (and options for trend assessment), 3) the predicted trends with separate lines for each month across the time series, and 4) a three-dimensional fit of the estimate trends across year and day of year with the z-axis showing estimated chlorophyll. 
 
 ```{r, echo = F}
 selectInput('mod', "Select a model:", unique(modssta$modi))
@@ -358,23 +359,136 @@ renderPlot({
     .[[1]] 
   gam.check(md)
 }, height = 550)
-renderPlot({
+```
+
+```{r}
+column(4,
+       renderUI({
+         
+         yrs <- mods()$data[[1]] %>% pull(yr) %>% unique
+         
+         pickerInput('yrbs', 'Select base years:', choices = yrs, selected = yrs[c(1,2)], multiple = T)
+         
+         })
+)
+column(4,
+       renderUI({
+         
+         # unique years x 2/3
+         yrs <- mods()$data[[1]] %>% pull(yr) %>% unique
+         
+         pickerInput('yrts', 'Select test years:', choices = yrs, selected = rev(yrs)[c(1,2)], multiple = T)
+         
+         })
+)
+```
+
+```{r}
+# trend ests, estimated data and results
+trnds <- reactive({
   
-  toplo <- prdplo() %>% 
-    filter(modi %in% input$mod)
+  req(input$yrbs)
   
-  # plot
-  p <- ggplot(toplo, aes(x = date)) + 
-    geom_point(data = rawchl(), aes(y = log10(chl)), size = 0.5) +
-    geom_line(aes(y = chl)) + 
-    theme_bw(base_family = 'serif', base_size = 16) + 
-    theme(
-      legend.position = 'top', 
-      legend.title = element_blank()
-      ) + 
-    ggtitle(paste0('Station', input$station, ', Model ', input$mod))
-  p
+  # inputs
+  yrbs <- as.numeric(input$yrbs)
+  yrts <- as.numeric(input$yrts)
+  mod <- input$mod
+  mods <- mods()
+
+  # input model
+  modv <- mods %>% 
+    filter(modi %in% mod) %>% 
+    pull(modv) %>% 
+    .[[1]]
+  
+  # trnds
+  trnds <- gamdiff(modv, yrbs, yrts) %>% 
+    .[c('pdat', 'per.mn', 'per.mn.obs', 'pct.chg', 'diff.pval')]
+  
+  return(trnds)
+  
 })
+
+# windows evaluated for trends, to plot
+trndswn <- reactive({
+  
+  req(trnds())
+
+  # input
+  trnds <- trnds()
+
+  toplo <- trnds$pdat %>% 
+    select(-doy) %>% 
+    mutate(
+      date = date_decimal(dec_time, tz = 'Pacific/Pitcairn'), 
+      date = as.Date(date),
+      bl = as.numeric(bl), 
+      bl = as.factor(bl)
+    ) %>% 
+    select(-dec_time) %>% 
+    group_by(year) %>% 
+    filter(date %in% range(date)) %>% 
+    ungroup %>% 
+    mutate(xval = ifelse(duplicated(year), 'xmax', 'xmin')) %>% 
+    spread(xval, date)
+  
+  return(toplo)
+  
+})
+
+# trend results in text format
+trndstx <- reactive({
+  
+  req(trnds())
+  
+  # input
+  trnds <- trnds()
+  
+  # format
+  pval <- p_ast(trnds$diff.pval)
+  out <- trnds[!names(trnds) %in% c('diff.pval', 'pdat')] %>% 
+    enframe %>% 
+    unnest %>% 
+    mutate(
+      value = round(value, 2)
+    )
+  out <- paste0('Base: ', out$value[3], ' (', out$value[1], '), Test: ', out$value[4], ' (', out$value[2], '), % change: ', out$value[5], pval)
+  
+  return(out)
+
+})
+```
+
+```{r}
+# plot predictions, selected mod
+renderPlot({
+
+  # inputs
+  mod <- input$mod
+  prdplo <- prdplo()
+  rawchl <- rawchl()
+  trndswn <- trndswn()
+  trndstx <- trndstx()
+
+  # get selected model
+  toplo <- prdplo %>% filter(modi %in% mod)
+
+  # plot
+  p <- ggplot() + 
+    geom_rect(data = trndswn, aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf, group = year, fill = bl), alpha = 0.7) +
+    geom_point(data = rawchl, aes(x = date, y = log10(chl)), size = 0.5) +
+    geom_line(data = toplo, aes(x = date, y = chl)) + 
+    theme_bw(base_family = 'serif', base_size = 16) + 
+    scale_fill_manual(values = c('lightblue', 'lightgreen')) +
+    theme(
+      legend.position = 'none', 
+      legend.title = element_blank(),
+      strip.text = element_blank(), 
+      strip.background = element_blank()
+      ) +
+    ggtitle(trndstx)
+  p
+}, height = 320)
 ```
 
 ```{r}
@@ -489,7 +603,7 @@ column(4,
          # unique years x 2/3
          yrs <- mods()$data[[1]] %>% pull(yr) %>% unique %>% length %>% `*` (2/3) %>% round(0)
          
-         numericInput('gamk1_2', 'First comparison for k:', value = yrs)
+         numericInput('gamk1_2', 'Second comparison for k:', value = yrs)
          
          })
 )
@@ -655,27 +769,5 @@ renderPlot({
   return(p)
   
 }, height = 320, width = 900)
-```
-
-### Estimate percent change 
-
-```{r}
-
-library(tidyverse)
-library(mgcv)
-library(tidyverse)
-source('R/funcs.R')
-
-data(modssta)
-
-sta <- 21
-gamtyp <- 'gam2'
-
-toeval <- modssta %>% 
-  filter(station %in% sta & modi %in% gamtyp)
-
-modv <- toeval$modv[[1]]
-
-gamdiff(modv)
 ```
 
