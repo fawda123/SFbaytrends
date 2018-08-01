@@ -696,15 +696,21 @@ renderTable({
   # inputs
   gamk1_1 <- input$gamk1_1
   gamk1_2 <- input$gamk1_2
+  modsk1 <- modsk1()
   
-  map(modsk1()$modv, ~ data.frame(
-      AIC = AIC(.x), 
-      GCV = .x$gcv.ubre,
-      R2 = summary(.x)$r.sq)) %>% 
-    enframe %>% 
-    rename(model = name) %>% 
-    mutate(model = factor(model, levels = c(1, 2), labels = c(gamk1_1, gamk1_2))) %>%
+  modsk1 <- modsk1 %>% 
+    mutate(
+      frms = gsub('.*\\s([0-9]+)\\).*', '\\1', frms),
+      ests = map(modv, ~ data.frame(
+        AIC = AIC(.x), 
+        GCV = .x$gcv.ubre,
+        R2 = summary(.x)$r.sq)
+        )
+      ) %>% 
+    dplyr::select(-modv, -data) %>% 
     unnest
+  
+  modsk1
   
 })
 ```
