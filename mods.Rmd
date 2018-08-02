@@ -452,7 +452,7 @@ trndstx <- reactive({
     mutate(
       value = round(value, 2)
     )
-  out <- paste0('Base: ', out$value[3], ' (', out$value[1], '), Test: ', out$value[4], ' (', out$value[2], '), % change: ', out$value[5], pval)
+  out <- paste0('Base: ', out$value[3], ' (', out$value[1], '), Test: ', out$value[4], ' (', out$value[2], '), Change: ', out$value[5], '%, ', pval)
   
   return(out)
 

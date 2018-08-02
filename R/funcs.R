@@ -237,7 +237,7 @@ gamdiff <- function(modv, base.yr.set = NA, test.yr.set = NA){
   diff.se   <- sqrt(xpd%*%VCmat%*%t(xpd))   # compute Std. Err. by usual rules
   diff.t    <- diff.est / diff.se
   diff.pval <- 2*pt(abs(diff.t), modv$df.null, 0, lower.tail = FALSE)
-  
+
   #compute CI for differnce
   alpha <- 0.05
   halpha    <- alpha/2
@@ -275,8 +275,8 @@ gamdiff <- function(modv, base.yr.set = NA, test.yr.set = NA){
 # function for formatting p-values in tables
 p_ast <- function(x){
   
-  sig_cats <- c('**', '*', 'ns')
-  sig_vals <- c(-Inf, 0.005, 0.05, Inf)
+  sig_cats <- c('p < 0.001', 'p < 0.01', 'p < 0.05', 'ns')
+  sig_vals <- c(-Inf, 0.001, 0.01, 0.05, Inf)
   
   out <- cut(x, breaks = sig_vals, labels = sig_cats, right = FALSE)
   out <- as.character(out)
