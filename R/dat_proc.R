@@ -76,7 +76,7 @@ modssta <- tomod %>%
     modv = purrr::pmap(list(station, data, modi, frm), function(station, data, modi, frm){
       
       cat(station, modi, '\t')
-      browser()
+      
       # insert upper gamk1 rule for gam1
       if(modi %in% c(2, 3)){
         
@@ -85,7 +85,8 @@ modssta <- tomod %>%
           unique %>%
           length 
         gamk1 <- gamk1 * (2/3) %>% 
-          round(0) %>%
+          round(., 0)
+        gamk1 <- gamk1 %>% 
           pmax(10, .)
         
         p1 <- gsub('(^.*)s\\(dec\\_time\\).*$', '\\1', frm)
@@ -99,8 +100,7 @@ modssta <- tomod %>%
       if(modi %in% 4){
         
         # get upper bounds of knots
-        gamk1 <- 0.9 * nrow(data) %>% 
-          round(., 0)
+        gamk1 <- 12 * length(unique(data$yr))
         
         p1 <- gsub('(^.*)s\\(dec\\_time\\).*$', '\\1', frm)
         p3 <-  gsub('^.*s\\(dec\\_time\\)(.*)$', '\\1', frm)
