@@ -40,6 +40,91 @@ locs <- read.csv('ignore/usgs_station_lat_lon.csv') %>%
 save(locs, file = 'data/locs.RData', compress = 'xz')
 
 ######
+# get GAMs for each station, gam0, gam1, gam2, gam1* from baytrends
+
+data(datprc)
+
+# smooths to evaluate
+frms <- c(
+  "log10(chl) ~ dec_time + s(doy, bs = 'cc')",  
+  "log10(chl) ~ dec_time + s(dec_time) + s(doy, bs = 'cc')",
+  "log10(chl) ~ dec_time + s(dec_time) + s(doy, bs = 'cc') + ti(dec_time, doy, bs = c('tp', 'cc'))",
+  "log10(chl) ~ dec_time + s(dec_time) + s(doy, bs = 'cc')"
+) %>% 
+  as.list
+
+# enframe frms for combine with tomod
+frms <- frms %>% 
+  enframe('modi', 'frm') %>% 
+  unnest
+
+# data to model, same as datprc, params in wide format, nested by station
+# crossed with frms
+tomod <- datprc %>% 
+  spread(param, value) %>% 
+  group_by(station) %>% 
+  nest %>% 
+  crossing(frms) %>% 
+  mutate(
+    modi = as.list(modi), 
+    frm = as.list(frm)
+  )
+
+# create models for every station, gam model eval
+modssta <- tomod %>%
+  mutate(
+    modv = purrr::pmap(list(station, data, modi, frm), function(station, data, modi, frm){
+      
+      cat(station, modi, '\t')
+      browser()
+      # insert upper gamk1 rule for gam1
+      if(modi %in% c(2, 3)){
+        
+        # get upper bounds of knots
+        gamk1 <- data$yr %>%
+          unique %>%
+          length 
+        gamk1 <- gamk1 * (2/3) %>% 
+          round(0) %>%
+          pmax(10, .)
+        
+        p1 <- gsub('(^.*)s\\(dec\\_time\\).*$', '\\1', frm)
+        p3 <-  gsub('^.*s\\(dec\\_time\\)(.*)$', '\\1', frm)
+        p2 <- paste0('s(dec_time, k = ', gamk1, ')')
+        frm <- paste0(p1, p2, p3)
+        
+      }
+      
+      # insert upper gamk1* rule for gamk1*
+      if(modi %in% 4){
+        
+        # get upper bounds of knots
+        gamk1 <- 0.9 * nrow(data) %>% 
+          round(., 0)
+        
+        p1 <- gsub('(^.*)s\\(dec\\_time\\).*$', '\\1', frm)
+        p3 <-  gsub('^.*s\\(dec\\_time\\)(.*)$', '\\1', frm)
+        p2 <- paste0('s(dec_time, k = ', gamk1, ')')
+        frm <- paste0(p1, p2, p3)
+        
+      }
+      
+      out <- gam(as.formula(frm),
+                 knots = list(doy = c(1, 366)),
+                 data = data,
+                 na.action = na.exclude,
+                 select = T
+      )
+      
+      return(out)
+      
+    })
+  )
+modssta <- modssta %>%
+  mutate(modi = factor(modi, levels = c(1, 2, 3, 4), labels = c('gam0', 'gam1', 'gam2', 'gam1*')))
+save(modssta, file = 'data/modssta.RData', compress = 'xz')
+
+######
 # check knots and fit
 
 data(datprc)
@@ -80,6 +165,8 @@ modkcmp <- datprc %>%
       
     }), 
     modv = pmap(list(data, frm), function(data, frm){
+      
+      cat(frm, '\n')
       
       gam(as.formula(frm),
           knots = list(doy = c(1, 366)),

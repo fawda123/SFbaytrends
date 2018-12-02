@@ -142,65 +142,7 @@ renderPlot({
 
 ## GAMs of log-chlorophyll with annual, seasonal trends
 
-```{r}
-# get GAMs for each station, gam0, gam1, and gam2 from baytrends
-
-# smooths to evaluate
-frms <- c(
-  "log10(chl) ~ dec_time + s(doy, bs = 'cc')",  
-  "log10(chl) ~ dec_time + s(dec_time) + s(doy, bs = 'cc')",
-  "log10(chl) ~ dec_time + s(dec_time) + s(doy, bs = 'cc') + ti(dec_time, doy, bs = c('tp', 'cc'))"
-  ) %>% 
-  as.list
-
-# enframe frms for combine with tomod
-frms <- frms %>% 
-  enframe('modi', 'frm')
-
-# data to model, same as datprc, params in wide format, nested by station
-# crossed with frms
-tomod <- datprc %>% 
-  spread(param, value) %>% 
-  group_by(station) %>% 
-  nest %>% 
-  crossing(frms)
-
-# # create models for every station, gam model eval
-# modssta <- tomod %>%
-#   mutate(
-#     modv = pmap(list(data, frm), function(data, frm){
-# 
-#       # get upper bounds of knots
-#       gamk1 <- data$yr %>%
-#         unique %>%
-#         length %>% 
-#         `*`(2 / 3) %>% 
-#         round(0) %>% 
-#         pmax(10, .)
-# 
-#       # insert upper gamk1 if applicable
-#       if(grepl('s\\(dec_time', frm)){
-#         p1 <- gsub('(^.*)s\\(dec\\_time\\).*$', '\\1', frm)
-#         p3 <-  gsub('^.*s\\(dec\\_time\\)(.*)$', '\\1', frm)
-#         p2 <- paste0('s(dec_time, k = ', gamk1, ')')
-#         frm <- paste0(p1, p2, p3)
-#       }
-# 
-#       gam(as.formula(frm),
-#         knots = list(doy = c(1, 366)),
-#         data = data,
-#         na.action = na.exclude,
-#         select = T
-#       )
-# 
-#   })
-#   )
-# modssta <- modssta %>%
-#   mutate(modi = factor(modi, levels = c(1, 2, 3), labels = c('gam0', 'gam1', 'gam2')))
-# save(modssta, file = 'data/modssta.RData', compress = 'xz')
-```
-
-Generalized additive models (GAMs) were developed to describe trends in chlorophyll-a at each of the monitoring stations in South Bay.  The station and selected model can be chosen from the drop down menus.  Three types of GAMs were developed for the time series at each station to model chlorophyll as a function of time, where time is measured as an annual and seasonal effect.  The three models descibe the time components differently and represent increasing levels of complexity to describe the chlorophyll trend:
+Generalized additive models (GAMs) were developed to describe trends in chlorophyll-a at each of the monitoring stations in South Bay.  The station and selected model can be chosen from the drop down menus.  Four types of GAMs were developed for the time series at each station to model chlorophyll as a function of time, where time is measured as an annual and seasonal effect.  The four models descibe the time components differently and represent increasing levels of complexity to describe the chlorophyll trend:
 
 * `gam0`: chl ~ year + s(doy)
 
@@ -208,13 +150,15 @@ Generalized additive models (GAMs) were developed to describe trends in chloroph
 
 * `gam2`: chl ~ year + s(doy) + s(year) + ti(doy, year)
 
-For all models, `year` is measured as a continuous numeric variable for the annual effect (e.g., January 1st, 2000 is 2000.0, July 1st, 2000 is 2000.5, etc.) and `doy` is the day of year as a numeric value from 1 to 366.  All models include `year` as a linear effect.  The functions `s()` model either `year` or `doy` as a smoothed, non-linear variable and `ti()` models the interaction between the two.
+* `gam1*`: chl ~ year + s(doy) + s(year, k = *large*)
 
-__Select the station with the drop down menu for the summary of all three GAM chlorophyll models.__  
+For all models, `year` is measured as a continuous numeric variable for the annual effect (e.g., January 1st, 2000 is 2000.0, July 1st, 2000 is 2000.5, etc.) and `doy` is the day of year as a numeric value from 1 to 366.  All models include `year` as a linear effect.  The functions `s()` model either `year` or `doy` as a smoothed, non-linear variable and `ti()` models the interaction between the two.  The fourth model, `gam1*`, is the same as `gam1` with the exception that the optimal amount of smoothing on `year` is not constrained by increasing the theoretical upper limit on the number of knots for `k`.  The upper limit of `k` was chosen as 12 times the number of years of data at each station.
+
+__Select the station with the drop down menu for the summary of all four GAM chlorophyll models.__  
 
 The first table shows the individual effects of the modelled components of each model as the estimated degrees of freedom (`edf`), the reference degrees of freedom (`Ref.df`), the test statistic (`F`), and significance of the component (`p-value`).  The significance of the component is in part based on the difference between `edf` and `Ref.df`.  The second table shows the overall summary of each model as Akaike Information Criterion (`AIC`), the generalized cross-validation score (`GCV`), and the `R2` values.  Lower values for `AIC` and `GCV` and higher values for `R2` indicate improved model fit.  
 
-The two plots show the predicted trends from each of the three models.  The first plot shows estimed chlorophyll by day of year with separate lines for each year.  The second plot show predictions for the three models across the entire time series. 
+The two plots show the predicted trends from each of the four models.  The first plot shows estimed chlorophyll by day of year with separate lines for each year.  The second plot show predictions for the four models across the entire time series. 
 
 ```{r}
 mods <- reactive({
@@ -226,7 +170,7 @@ renderTable({
   map(mods()$modv, ~ summary(.x)$s.table %>% data.frame %>% rownames_to_column('smoother')) %>% 
     enframe %>% 
     rename(model = name) %>% 
-    mutate(model = factor(model, levels = c(1, 2, 3), labels = c('gam0', 'gam1', 'gam2'))) %>% 
+    mutate(model = factor(model, levels = c(1, 2, 3, 4), labels = c('gam0', 'gam1', 'gam2', 'gam1*'))) %>% 
     unnest
 })
 
@@ -238,7 +182,7 @@ renderTable({
       R2 = summary(.x)$r.sq)) %>% 
     enframe %>% 
     rename(model = name) %>% 
-    mutate(model = factor(model, levels = c(1, 2, 3), labels = c('gam0', 'gam1', 'gam2'))) %>% 
+    mutate(model = factor(model, levels = c(1, 2, 3, 4), labels = c('gam0', 'gam1', 'gam2', 'gam1*'))) %>% 
     unnest
 })
 ```
@@ -290,7 +234,7 @@ renderPlot({
       legend.title = element_blank()
       ) + 
     scale_y_continuous('log10(chl)') +
-    facet_wrap(~ modi, ncol = 3) +
+    facet_wrap(~ modi, ncol = 4) +
     guides(colour = guide_colourbar(barheight = 1, barwidth = 20)) + 
     ggtitle(paste0('Station', input$station))
   p
@@ -313,14 +257,14 @@ renderPlot({
       ) + 
     ggtitle(paste0('Station', input$station))
   p
-}, height = 600)
+}, height = 800)
 ```
 
 ### Individual model for selected station and trend assessment
 
 __Selected station:  `r renderText({input$station})`__
 
-The following provides additional information for one of the three models for the selected station.  __Use the drop down menu to select a specific model.__  The tables repeat the information above but only for the selected model.  The four plots show 1) plot diagnostics of the model fit, 2) the predicted trends across the time series (and options for trend assessment), 3) the predicted trends with separate lines for each month across the time series, and 4) a three-dimensional fit of the estimate trends across year and day of year with the z-axis showing estimated chlorophyll. 
+The following provides additional information for one of the four models for the selected station.  __Use the drop down menu to select a specific model.__  The tables repeat the information above but only for the selected model.  The four plots show 1) plot diagnostics of the model fit, 2) the predicted trends across the time series (and options for trend assessment), 3) the predicted trends with separate lines for each month across the time series, and 4) a three-dimensional fit of the estimated trends across year and day of year with the z-axis showing estimated chlorophyll. 
 
 ```{r, echo = F}
 selectInput('mod', "Select a model:", unique(modssta$modi))
@@ -527,10 +471,10 @@ prdplost <- reactive({
 
 ```{r}
 renderPlot({
-  
+
   toplo <- prdplost() %>% 
     mutate(day = day(date)) %>% 
-    filter(day %in% c(1)) %>% 
+    filter(day %in% c(1)) %>%
     mutate(month = month(date, label = T))
   
   # plot
