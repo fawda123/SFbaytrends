@@ -4,6 +4,7 @@
 library(tidyverse)
 library(lubridate)
 library(sf)
+library(mgcv)
 
 ######
 # wq data
@@ -73,26 +74,21 @@ tomod <- datprc %>%
 # create models for every station, gam model eval
 modssta <- tomod %>%
   mutate(
-    modv = purrr::pmap(list(station, data, modi, frm), function(station, data, modi, frm){
+    kyear = purrr::pmap(list(modi, data), function(modi, data){
       
-      cat(station, modi, '\t')
+      out <- NA
       
       # insert upper gamk1 rule for gam1
       if(modi %in% c(2, 3)){
         
         # get upper bounds of knots
-        gamk1 <- data$yr %>%
+        out <- data$yr %>%
           unique %>%
           length 
-        gamk1 <- gamk1 * (2/3) %>% 
+        out <- out * (2/3) %>% 
           round(., 0)
-        gamk1 <- gamk1 %>% 
+        out <- out %>% 
           pmax(10, .)
-        
-        p1 <- gsub('(^.*)s\\(dec\\_time\\).*$', '\\1', frm)
-        p3 <-  gsub('^.*s\\(dec\\_time\\)(.*)$', '\\1', frm)
-        p2 <- paste0('s(dec_time, k = ', gamk1, ')')
-        frm <- paste0(p1, p2, p3)
         
       }
       
@@ -100,11 +96,33 @@ modssta <- tomod %>%
       if(modi %in% 4){
         
         # get upper bounds of knots
-        gamk1 <- 12 * length(unique(data$yr))
+        out <- 12 * length(unique(data$yr))
+        
+      }
+      
+      return(out)
+      
+    }),
+    modv = purrr::pmap(list(station, data, modi, frm, kyear), function(station, data, modi, frm, kyear){
+      
+      cat(station, modi, '\t')
+      
+      # insert upper gamk1 rule for gam1
+      if(modi %in% c(2, 3)){
         
         p1 <- gsub('(^.*)s\\(dec\\_time\\).*$', '\\1', frm)
         p3 <-  gsub('^.*s\\(dec\\_time\\)(.*)$', '\\1', frm)
-        p2 <- paste0('s(dec_time, k = ', gamk1, ')')
+        p2 <- paste0('s(dec_time, k = ', kyear, ')')
+        frm <- paste0(p1, p2, p3)
+        
+      }
+      
+      # insert upper gamk1* rule for gamk1*
+      if(modi %in% 4){
+        
+        p1 <- gsub('(^.*)s\\(dec\\_time\\).*$', '\\1', frm)
+        p3 <-  gsub('^.*s\\(dec\\_time\\)(.*)$', '\\1', frm)
+        p2 <- paste0('s(dec_time, k = ', kyear, ')')
         frm <- paste0(p1, p2, p3)
         
       }
