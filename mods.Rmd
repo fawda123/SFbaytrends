@@ -294,11 +294,16 @@ renderTable({
 # summary stats of GAMs, model fit/perf
 renderTable({
   
-  md <- mods() %>% 
-    filter(modi %in% input$mod) %>% 
+  mdsel <- mods() %>% 
+    filter(modi %in% input$mod)
+  md <- mdsel %>% 
     .$modv %>% 
-    .[[1]] 
+    .[[1]]
+  kval <- mdsel %>% 
+    pull(kyear) %>% 
+    as.integer
   tab <- data.frame(
+    k = kval,
     AIC = AIC(md), 
     GCV = md$gcv.ubre,
     R2 = summary(md)$r.sq)
