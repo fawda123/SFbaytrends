@@ -233,6 +233,7 @@ renderPlot({
       legend.position = 'top', 
       legend.title = element_blank()
       ) + 
+    scale_color_viridis_c() + 
     scale_y_continuous('log10(chl)') +
     facet_wrap(~ modi, ncol = 4) +
     guides(colour = guide_colourbar(barheight = 1, barwidth = 20)) + 
@@ -244,10 +245,11 @@ renderPlot({
 renderPlot({
   # plot
   p <- ggplot(prdplo(), aes(x = date)) + 
-    geom_point(data = rawchl(), aes(y = log10(chl)), size = 0.5) +
-    geom_line(aes(y = chl, colour = factor(modi))) + 
+    geom_point(data = rawchl(), aes(y = log10(chl)), size = 0.75) +
+    geom_line(aes(y = chl, colour = factor(modi)), size = 0.75, alpha = 0.8) + 
     stat_smooth(aes(y = chl, group = modi), se = F, method = "loess", color = 'black', alpha = 0.7) +
     facet_wrap(~modi, ncol = 1) +
+    scale_color_viridis_d() + 
     theme_bw(base_family = 'serif', base_size = 16) + 
     theme(
       legend.position = 'top', 
@@ -668,13 +670,14 @@ renderPlot({
 
   p <- ggplot() + 
     geom_point(data = rawchl, aes(x = dec_time, y = log10(chl)), size = 0.5) +
-    geom_line(data = prdplok1(), aes(x = dec_time, group = factor(frms), colour = frms, y = chl)) + 
+    geom_line(data = prdplok1(), aes(x = dec_time, group = factor(frms), colour = frms, y = chl), alpha = 0.8) + 
     theme_bw(base_family = 'serif', base_size = 16) + 
     theme(
       legend.position = 'top', 
       legend.title = element_blank(), 
       axis.title.x = element_blank()
       ) + 
+    scale_color_viridis_d() + 
     scale_y_continuous('log10(chl)') +
     guides(colour = guide_legend(ncol = 1)) +
     ggtitle(paste0('Station', input$station))
