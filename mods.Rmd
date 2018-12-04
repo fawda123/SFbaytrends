@@ -23,6 +23,7 @@ library(plotly)
 library(ggmap)
 library(gridExtra)
 library(shinyWidgets)
+library(viridis)
 
 source('R/funcs.R')
 
@@ -245,7 +246,7 @@ renderPlot({
 renderPlot({
   # plot
   p <- ggplot(prdplo(), aes(x = date)) + 
-    geom_point(data = rawchl(), aes(y = log10(chl)), size = 0.75) +
+    geom_point(data = rawchl(), aes(y = log10(chl)), size = 0.5) +
     geom_line(aes(y = chl, colour = factor(modi)), size = 0.75, alpha = 0.8) + 
     stat_smooth(aes(y = chl, group = modi), se = F, method = "loess", color = 'black', alpha = 0.7) +
     facet_wrap(~modi, ncol = 1) +
@@ -447,7 +448,7 @@ prdplost <- reactive({
 
       data <- data$date %>% 
         range(na.rm  = T)
-      data <- seq.Date(floor_date(data[1], 'month'), ceiling_date(data[2], 'month'), by = 'days') %>% 
+      data <- seq.Date(floor_date(data[1], 'year'), ceiling_date(data[2], 'year'), by = 'days') %>% 
         tibble(date = .) %>% 
         mutate(
           doy = yday(date), 
@@ -493,9 +494,10 @@ renderPlot({
 
 ```{r, out.width = "100%"}
 renderPlotly({
-  
+
   logchl <- prdplost() %>% 
     select(-date, -dec_time) %>% 
+    filter(!yr %in% 2018) %>% 
     spread(yr, chl) %>% 
     select(-doy) %>% 
     as.matrix
@@ -511,7 +513,7 @@ renderPlotly({
   )
   
   p <- plot_ly(z = ~logchl, height = 600) %>% 
-    add_surface(colors = rev(RColorBrewer::brewer.pal(11, 'Spectral'))) %>% 
+    add_surface(colors = viridis(12)) %>% 
     layout(scene = scene)
   p
   
@@ -670,7 +672,7 @@ renderPlot({
 
   p <- ggplot() + 
     geom_point(data = rawchl, aes(x = dec_time, y = log10(chl)), size = 0.5) +
-    geom_line(data = prdplok1(), aes(x = dec_time, group = factor(frms), colour = frms, y = chl), alpha = 0.8) + 
+    geom_line(data = prdplok1(), aes(x = dec_time, group = factor(frms), colour = frms, y = chl), alpha = 0.8, size = 0.75) + 
     theme_bw(base_family = 'serif', base_size = 16) + 
     theme(
       legend.position = 'top', 
