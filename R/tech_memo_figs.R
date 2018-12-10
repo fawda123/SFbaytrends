@@ -428,3 +428,69 @@ p
 pdf('figs/station1832_gam2_by_month.pdf', height = 8, width = 11, family = 'serif')
 p
 dev.off()
+
+# extracted period averages -----------------------------------------------
+
+BayData <- read.csv("raw/df_18_36.csv")
+BayData$date <- as.Date(BayData$date)
+BayData$year <- year(BayData$date)
+BayData$fyear <- factor(BayData$year)
+BayData$julian <- julian(BayData$date)
+BayData$doy <- BayData$julian - julian(update(BayData$date, month = 1, mday = 1))
+BayData$dyear <- BayData$year + (BayData$doy - 1)/366
+chl <- subset(BayData, 
+              station == 32 & 
+                param == "c_chl" & 
+                year >= 1992 & 
+                year <= 2017 )
+centerYear <- mean(range(chl$dyear, na.rm=FALSE))
+chl$cyear <- chl$dyear - centerYear
+numYears <- diff(range(chl$year))
+gamK1 <- max(10, ceiling(0.67 * numYears)) ## baytrends default maximum df for 
+
+extractPeriodAverages <- function(fit, data, doy.start = 1, doy.end = 365) {
+  numDays <- doy.end - doy.start + 1
+  fillData <- data.frame(julian = min(data$julian):max(data$julian))
+  fillData$date <- as.Date(fillData$julian, origin = as.Date("1970-01-01"))
+  fillData$year <- year(fillData$date)
+  fillData$fyear <- factor(fillData$year)
+  fillData$doy <- fillData$julian - julian(update(fillData$date, month = 1, mday = 1))
+  fillData$dyear <- fillData$year + (fillData$doy - 1)/366
+  centerYear <- mean(range(fillData$dyear, na.rm=FALSE))
+  fillData$cyear <- fillData$dyear - centerYear
+  ## Exclude days not in the desired range
+  fillData <- subset(fillData, doy >= doy.start & doy <= doy.end)
+  ## Exclude years that do not include all relevant days (i.e. start or end year)
+  dayCounts <- table(fillData$year)
+  incompleteYear <- as.integer(names(dayCounts)[dayCounts != numDays])
+  numYears <- length(dayCounts)-length(incompleteYear)
+  fillData <- subset(fillData, !(year %in% incompleteYear))
+  year <- as.integer(names(dayCounts)[dayCounts == numDays])
+  ## See Examples section of help(predict.gam)
+  Xp <- predict(fit, newdata = fillData, type = "lpmatrix")
+  coefs <- coef(fit)
+  A <- kronecker(diag(numYears), matrix(rep(1/numDays, numDays), nrow = 1))
+  Xs <- A %*% Xp
+  means <- as.numeric(Xs %*% coefs)
+  ses <- sqrt(diag(Xs %*% fit$Vp %*% t(Xs)))
+  data.frame(predicted = means, se = ses, year = year )
+}
+
+doyJan1 <- julian(as.Date("2018-01-01"), origin = as.Date("2018-01-01"))
+doyDec31 <- julian(as.Date("2018-12-31"), origin = as.Date("2018-01-01"))
+fit.mB <- gam(log(value) ~ s(cyear, k = 12 * numYears) + s(doy, bs = 'cc'), data = chl, select = TRUE)
+
+annual <- extractPeriodAverages(fit.mB, chl, doy.start = doyJan1, doy.end = doyDec31)
+
+p <- ggplot(data = annual, aes(x = year, y = predicted)) + 
+  geom_point(colour = 'skyblue') +
+  geom_errorbar(aes(ymin = predicted - (1.96 * se), ymax = predicted + (1.96 * se)), colour = 'skyblue') +
+  theme_bw() + 
+  theme(
+    axis.title.x = element_blank()
+  ) +
+  ggtitle('Fitted average from full year with 95% confidence intervals')
+
+pdf('figs/station32_fit_average.pdf', height = 5, width = 7, family = 'serif')
+p
+dev.off()
