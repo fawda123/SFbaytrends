@@ -348,7 +348,7 @@ prdplo <- mods %>%
 # plot
 p <- ggplot(prdplo, aes(x = date)) + 
   geom_point(data = rawchl, aes(y = log10(chl)), size = 0.5) +
-  geom_line(aes(y = chl), colour = 'skyblue', size = 0.75, alpha = 0.8) + 
+  geom_line(aes(y = chl), colour = 'deepskyblue3', size = 0.75, alpha = 0.8) + 
   stat_smooth(aes(y = chl, group = modi), se = F, method = "loess", color = 'black', alpha = 0.7) +
   facet_wrap(~station, ncol = 1, scales = 'free_y') +
   theme_bw(base_family = 'serif', base_size = 16) + 
@@ -482,7 +482,6 @@ chl <- subset(BayData,
 centerYear <- mean(range(chl$dyear, na.rm=FALSE))
 chl$cyear <- chl$dyear - centerYear
 numYears <- diff(range(chl$year))
-gamK1 <- max(10, ceiling(0.67 * numYears)) ## baytrends default maximum df for 
 
 extractPeriodAverages <- function(fit, data, doy.start = 1, doy.end = 365) {
   numDays <- doy.end - doy.start + 1
@@ -519,8 +518,8 @@ fit.mB <- gam(log(value) ~ s(cyear, k = 12 * numYears) + s(doy, bs = 'cc'), data
 annual <- extractPeriodAverages(fit.mB, chl, doy.start = doyJan1, doy.end = doyDec31)
 
 p <- ggplot(data = annual, aes(x = year, y = predicted)) + 
-  geom_point(colour = 'skyblue') +
-  geom_errorbar(aes(ymin = predicted - (1.96 * se), ymax = predicted + (1.96 * se)), colour = 'skyblue') +
+  geom_point(colour = 'deepskyblue3') +
+  geom_errorbar(aes(ymin = predicted - (1.96 * se), ymax = predicted + (1.96 * se)), colour = 'deepskyblue3') +
   theme_bw() + 
   theme(
     axis.title.x = element_blank()
@@ -532,5 +531,143 @@ p
 dev.off()
 
 png('figs/station32_fit_average.png', height = 5, width = 7, units = 'in', res = 300, family = 'serif')
+p
+dev.off()
+
+# seasonal averages station 32 --------------------------------------------
+
+chl <- subset(BayData, 
+              station == 32 & 
+                param == "c_chl" & 
+                year >= 1992 & 
+                year <= 2017 )
+centerYear <- mean(range(chl$dyear, na.rm=FALSE))
+chl$cyear <- chl$dyear - centerYear
+numYears <- diff(range(chl$year))
+
+fit.mB <- gam(log(value) ~ s(cyear, k = 12 * numYears) + s(doy, bs = 'cc'), data = chl, select = TRUE)
+
+ests <- data.frame(
+  strt = c('2018-03-21', '2018-06-21', '2018-08-21', '2018-01-01'),
+  ends = c('2018-04-21', '2018-07-21', '2018-10-21', '2018-12-31'),
+  stringsAsFactors = F
+) %>% 
+  rownames_to_column() %>% 
+  group_by(rowname) %>% 
+  nest %>% 
+  mutate(
+    ests = purrr::map(data, function(data){
+      
+      strt <- julian(as.Date(data[[1]]), origin = as.Date('2018-01-01'))
+      ends <- julian(as.Date(data[[2]]), origin = as.Date('2018-01-01'))
+      
+      out <- extractPeriodAverages(fit.mB, chl, doy.start = strt, doy.end = ends)
+      
+      return(out)
+      
+    }), 
+    ttls = purrr::map(data, function(data){
+      
+      strt <- as.Date(data[[1]])
+      ends <- as.Date(data[[2]])
+      
+      out <- paste0(month(strt, abbr = T, label = T), ' ', day(strt), '-', month(ends, abbr = T, label = T), ' ', day(ends))
+      
+      return(out)
+      
+    })
+  ) %>% 
+  select(-data) %>% 
+  unnest(ttls) %>% 
+  unnest(ests) %>% 
+  mutate(
+    ttls = factor(ttls, levels = unique(ttls))
+  )
+
+p <- ggplot(data = ests, aes(x = year, y = predicted)) + 
+  geom_point(colour = 'deepskyblue3') +
+  geom_errorbar(aes(ymin = predicted - (1.96 * se), ymax = predicted + (1.96 * se)), colour = 'deepskyblue3') +
+  theme_bw() + 
+  theme(
+    axis.title.x = element_blank(),
+    strip.background = element_blank()
+  ) +
+  facet_wrap(~ttls, ncol = 2) +
+  ggtitle('s32, Fitted averages with 95% confidence intervals')
+
+pdf('figs/station32_fit_averagebyseas.pdf', height = 6, width = 10, family = 'serif')
+p
+dev.off()
+
+png('figs/station32_fit_averagebyseas.png', height = 6, width = 10, units = 'in', res = 300, family = 'serif')
+p
+dev.off()
+
+# seasonal averages station 18 --------------------------------------------
+
+chl <- subset(BayData, 
+              station == 18 & 
+                param == "c_chl" & 
+                year >= 1992 & 
+                year <= 2017 )
+centerYear <- mean(range(chl$dyear, na.rm=FALSE))
+chl$cyear <- chl$dyear - centerYear
+numYears <- diff(range(chl$year))
+
+fit.mB <- gam(log(value) ~ s(cyear, k = 12 * numYears) + s(doy, bs = 'cc'), data = chl, select = TRUE)
+
+ests <- data.frame(
+    strt = c('2018-03-21', '2018-06-21', '2018-08-21', '2018-01-01'),
+    ends = c('2018-04-21', '2018-07-21', '2018-10-21', '2018-12-31'),
+    stringsAsFactors = F
+  ) %>% 
+  rownames_to_column() %>% 
+  group_by(rowname) %>% 
+  nest %>% 
+  mutate(
+    ests = purrr::map(data, function(data){
+
+      strt <- julian(as.Date(data[[1]]), origin = as.Date('2018-01-01'))
+      ends <- julian(as.Date(data[[2]]), origin = as.Date('2018-01-01'))
+      
+      out <- extractPeriodAverages(fit.mB, chl, doy.start = strt, doy.end = ends)
+      
+      return(out)
+      
+    }), 
+    ttls = purrr::map(data, function(data){
+
+      strt <- as.Date(data[[1]])
+      ends <- as.Date(data[[2]])
+
+      out <- paste0(month(strt, abbr = T, label = T), ' ', day(strt), '-', month(ends, abbr = T, label = T), ' ', day(ends))
+
+      return(out)
+
+    })
+  ) %>% 
+  select(-data) %>% 
+  unnest(ttls) %>% 
+  unnest(ests) %>% 
+  mutate(
+    ttls = factor(ttls, levels = unique(ttls))
+  )
+    
+p <- ggplot(data = ests, aes(x = year, y = predicted)) + 
+  geom_point(colour = 'deepskyblue3') +
+  geom_errorbar(aes(ymin = predicted - (1.96 * se), ymax = predicted + (1.96 * se)), colour = 'deepskyblue3') +
+  theme_bw() + 
+  theme(
+    axis.title.x = element_blank(),
+    strip.background = element_blank()
+  ) +
+  facet_wrap(~ttls, ncol = 2) +
+  ggtitle('s18, Fitted averages with 95% confidence intervals')
+
+pdf('figs/station18_fit_averagebyseas.pdf', height = 6, width = 10, family = 'serif')
+p
+dev.off()
+
+png('figs/station18_fit_averagebyseas.png', height = 6, width = 10, units = 'in', res = 300, family = 'serif')
 p
 dev.off()
