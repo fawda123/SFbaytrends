@@ -71,6 +71,10 @@ pdf('figs/map.pdf', height = 6, width = 5, family = 'serif')
 p1
 dev.off()
 
+png('figs/map.png', height = 6, width = 5, units = 'in', res = 300, family = 'serif')
+p1
+dev.off()
+
 # map and time series -----------------------------------------------------
 
 # inputs
@@ -91,6 +95,10 @@ p1 <- pbase +
   geom_text(data = locs, aes(x = lon, y = lat, label = Station))
 
 pdf('figs/map_and_ts.pdf', height = 4, width = 11.5, family = 'serif')
+grid.arrange(p1, toplo, widths = c(0.3, 0.7), ncol = 2)
+dev.off()
+
+png('figs/map_and_ts.png', height = 4, width = 11.5, units = 'in', res = 300, family = 'serif')
 grid.arrange(p1, toplo, widths = c(0.3, 0.7), ncol = 2)
 dev.off()
 
@@ -150,6 +158,10 @@ pdf('figs/station32_raw_pred.pdf', height = 9, width = 8, family = 'serif')
 p
 dev.off()
 
+png('figs/station32_raw_pred.png', height = 9, width = 8, units = 'in', res = 300, family = 'serif')
+p
+dev.off()
+
 # station32 mod by doy ----------------------------------------------------
 
 p <- ggplot(prdplo, aes(x = doy, group = factor(yr), colour = yr)) + 
@@ -165,6 +177,10 @@ p <- ggplot(prdplo, aes(x = doy, group = factor(yr), colour = yr)) +
   guides(colour = guide_colourbar(barheight = 1, barwidth = 20))
 
 pdf('figs/station32_doy_pred.pdf', height = 5, width = 11, family = 'serif')
+p
+dev.off()
+
+png('figs/station32_doy_pred.png', height = 5, width = 11, units = 'in', res = 300, family = 'serif')
 p
 dev.off()
 
@@ -213,6 +229,10 @@ p <- ggplot(prdplo, aes(x = doy, group = factor(yr), colour = yr)) +
   guides(colour = guide_colourbar(barheight = 1, barwidth = 20))
 
 pdf('figs/station18_doy_pred.pdf', height = 5, width = 11, family = 'serif')
+p
+dev.off()
+
+png('figs/station18_doy_pred.png', height = 5, width = 11, units = 'in', res = 300, family = 'serif')
 p
 dev.off()
 
@@ -270,6 +290,10 @@ p <- ggplot(toplo, aes(x = date)) +
 p
 
 pdf('figs/station18_gam1st_by_month.pdf', height = 5, width = 11, family = 'serif')
+p
+dev.off()
+
+png('figs/station18_gam1st_by_month.png', height = 5, width = 11, units = 'in', res = 300, family = 'serif')
 p
 dev.off()
 
@@ -340,6 +364,10 @@ pdf('figs/manystations_raw_pred.pdf', height = 13, width = 9, family = 'serif')
 p
 dev.off()
 
+png('figs/manystations_raw_pred.png', height = 13, width = 9, units = 'in', res = 300, family = 'serif')
+p
+dev.off()
+
 # gam2 preds doy multiple stations --------------------------------------------
 
 p <- ggplot(prdplo, aes(x = doy, group = factor(yr), colour = yr)) + 
@@ -357,6 +385,10 @@ p <- ggplot(prdplo, aes(x = doy, group = factor(yr), colour = yr)) +
   guides(colour = guide_colourbar(barheight = 1, barwidth = 20))
 
 pdf('figs/manystations_doy_pred.pdf', height = 7, width = 10, family = 'serif')
+p
+dev.off()
+
+png('figs/manystations_doy_pred.png', height = 7, width = 10, units = 'in', res = 300, family = 'serif')
 p
 dev.off()
 
@@ -429,6 +461,10 @@ pdf('figs/station1832_gam2_by_month.pdf', height = 8, width = 11, family = 'seri
 p
 dev.off()
 
+png('figs/station1832_gam2_by_month.png', height = 8, width = 11, units = 'in', res = 300, family = 'serif')
+p
+dev.off()
+
 # extracted period averages -----------------------------------------------
 
 BayData <- read.csv("raw/df_18_36.csv")
@@ -492,5 +528,9 @@ p <- ggplot(data = annual, aes(x = year, y = predicted)) +
   ggtitle('Fitted average from full year with 95% confidence intervals')
 
 pdf('figs/station32_fit_average.pdf', height = 5, width = 7, family = 'serif')
+p
+dev.off()
+
+png('figs/station32_fit_average.png', height = 5, width = 7, units = 'in', res = 300, family = 'serif')
 p
 dev.off()
