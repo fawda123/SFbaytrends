@@ -143,6 +143,8 @@ renderPlot({
 
 ## GAMs of log-chlorophyll with annual, seasonal trends
 
+__Note:__ All plots below are shown with model results in log-space, although plot axis-scaling is arithmetic. 
+
 Generalized additive models (GAMs) were developed to describe trends in chlorophyll-a at each of the monitoring stations in South Bay.  The station and selected model can be chosen from the drop down menus.  Four types of GAMs were developed for the time series at each station to model chlorophyll as a function of time, where time is measured as an annual and seasonal effect.  The four models descibe the time components differently and represent increasing levels of complexity to describe the chlorophyll trend:
 
 * `gam0`: chl ~ year + s(doy)
