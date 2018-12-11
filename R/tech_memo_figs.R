@@ -513,7 +513,7 @@ extractPeriodAverages <- function(fit, data, doy.start = 1, doy.end = 365) {
 
 doyJan1 <- julian(as.Date("2018-01-01"), origin = as.Date("2018-01-01"))
 doyDec31 <- julian(as.Date("2018-12-31"), origin = as.Date("2018-01-01"))
-fit.mB <- gam(log(value) ~ s(cyear, k = 12 * numYears) + s(doy, bs = 'cc'), data = chl, select = TRUE)
+fit.mB <- gam(log10(value) ~ s(cyear, k = 12 * numYears) + s(doy, bs = 'cc'), data = chl, select = TRUE)
 
 annual <- extractPeriodAverages(fit.mB, chl, doy.start = doyJan1, doy.end = doyDec31)
 
@@ -545,7 +545,7 @@ centerYear <- mean(range(chl$dyear, na.rm=FALSE))
 chl$cyear <- chl$dyear - centerYear
 numYears <- diff(range(chl$year))
 
-fit.mB <- gam(log(value) ~ s(cyear, k = 12 * numYears) + s(doy, bs = 'cc'), data = chl, select = TRUE)
+fit.mB <- gam(log10(value) ~ s(cyear, k = 12 * numYears) + s(doy, bs = 'cc'), data = chl, select = TRUE)
 
 ests <- data.frame(
   strt = c('2018-03-21', '2018-06-21', '2018-08-21', '2018-01-01'),
@@ -614,7 +614,7 @@ centerYear <- mean(range(chl$dyear, na.rm=FALSE))
 chl$cyear <- chl$dyear - centerYear
 numYears <- diff(range(chl$year))
 
-fit.mB <- gam(log(value) ~ s(cyear, k = 12 * numYears) + s(doy, bs = 'cc'), data = chl, select = TRUE)
+fit.mB <- gam(log10(value) ~ s(cyear, k = 12 * numYears) + s(doy, bs = 'cc'), data = chl, select = TRUE)
 
 ests <- data.frame(
     strt = c('2018-03-21', '2018-06-21', '2018-08-21', '2018-01-01'),

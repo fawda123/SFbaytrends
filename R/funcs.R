@@ -284,3 +284,42 @@ p_ast <- function(x){
   return(out)
   
 }
+
+######
+# extract period averages from Perry's function
+extractPeriodAverages <- function(fit, data, doy.start = 1, doy.end = 365) {
+  
+  # prep prediciton data
+  numDays <- doy.end - doy.start + 1
+  data$julian <- julian(data$date)
+  fillData <- data.frame(julian = min(data$julian):max(data$julian))
+  fillData$date <- as.Date(fillData$julian, origin = as.Date("1970-01-01"))
+  fillData$yr <- year(fillData$date)
+  fillData$fyr <- factor(fillData$yr)
+  fillData$doy <- fillData$julian - julian(update(fillData$date, month = 1, mday = 1))
+  fillData$dec_time <- fillData$yr + (fillData$doy - 1)/366
+  centerYear <- mean(range(fillData$dec_time, na.rm=FALSE))
+  fillData$cyr <- fillData$dec_time - centerYear
+  
+  ## Exclude days not in the desired range
+  fillData <- subset(fillData, doy >= doy.start & doy <= doy.end)
+  
+  ## Exclude years that do not include all relevant days (i.e. start or end year)
+  dayCounts <- table(fillData$yr)
+  incompleteYear <- as.integer(names(dayCounts)[dayCounts != numDays])
+  numYears <- length(dayCounts)-length(incompleteYear)
+  fillData <- subset(fillData, !(yr %in% incompleteYear))
+  yr <- as.integer(names(dayCounts)[dayCounts == numDays])
+  
+  ## See Examples section of help(predict.gam)
+  Xp <- predict(fit, newdata = fillData, type = "lpmatrix")
+  coefs <- coef(fit)
+  A <- kronecker(diag(numYears), matrix(rep(1/numDays, numDays), nrow = 1))
+  Xs <- A %*% Xp
+  means <- as.numeric(Xs %*% coefs)
+  ses <- sqrt(diag(Xs %*% fit$Vp %*% t(Xs)))
+  out <- data.frame(predicted = means, se = ses, yr = yr )
+  
+  return(out)
+  
+}

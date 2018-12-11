@@ -143,7 +143,7 @@ renderPlot({
 
 ## GAMs of log-chlorophyll with annual, seasonal trends
 
-__Note:__ All plots below are shown with model results in log-space, although plot axis-scaling is arithmetic. 
+*Note:* All plots below are shown with model results in log-space, although plot axis-scaling is arithmetic. 
 
 Generalized additive models (GAMs) were developed to describe trends in chlorophyll-a at each of the monitoring stations in South Bay.  The station and selected model can be chosen from the drop down menus.  Four types of GAMs were developed for the time series at each station to model chlorophyll as a function of time, where time is measured as an annual and seasonal effect.  The four models descibe the time components differently and represent increasing levels of complexity to describe the chlorophyll trend:
 
@@ -275,7 +275,7 @@ renderPlot({
 
 __Selected station:  `r renderText({input$station})`__
 
-The following provides additional information for one of the four models for the selected station.  __Use the drop down menu to select a specific model.__  The tables repeat the information above but only for the selected model.  The four plots show 1) plot diagnostics of the model fit, 2) the predicted trends across the time series (and options for trend assessment), 3) the predicted trends with separate lines for each month across the time series, and 4) a three-dimensional fit of the estimated trends across year and day of year with the z-axis showing estimated chlorophyll. 
+The following provides additional information for one of the four models for the selected station.  __Use the drop down menu to select a specific model.__  The tables repeat the information above but only for the selected model.  The four plots show 1) plot diagnostics of the model fit, 2) the predicted trends across the time series (and options for trend assessment), 3) the predicted trends as seasonal aggregations with 95% confidence intervals within each year, 4) the predicted trends with separate lines for each month across the time series, and 5) a three-dimensional fit of the estimated trends across year and day of year with the z-axis showing estimated chlorophyll. 
 
 ```{r, echo = F}
 selectInput('mod', "Select a model:", unique(modssta$modi))
@@ -444,10 +444,56 @@ renderPlot({
       legend.position = 'none', 
       legend.title = element_blank(),
       strip.text = element_blank(), 
-      strip.background = element_blank()
+      strip.background = element_blank(), 
+      axis.title.x = element_blank()
       ) +
     ggtitle(trndstx)
   p
+}, height = 320)
+```
+
+```{r}
+column(4,
+         
+  sliderInput('dytr', 'Select seasonal trend aggregations (doy):', min = 1, max = 364, value = c(20, 354))
+   
+)
+
+renderPlot({
+  
+  # inputs
+  dytr <- input$dytr
+  mod <- input$mod
+  rawchl <- rawchl()
+  prdplo <- prdplo()
+  
+  # get selected model
+  modin <- mods() %>% filter(modi %in% mod) %>% 
+    pull(modv) %>% 
+    .[[1]]
+  
+  # title
+  dts <- as.Date(dytr, origin = as.Date("2018-01-01"))
+  strt <- paste(month(dts[1], label = T, abbr = T), day(dts[1]))
+  ends <- paste(month(dts[2], label = T, abbr = T), day(dts[2]))
+  ttl <- paste0('Fitted averages with 95% confidence intervals: ', strt, '-',  ends)
+  
+  # aggregated data
+  toplo <- extractPeriodAverages(modin, rawchl, dytr[1], dytr[2])
+  
+  # plot output
+  p <- ggplot(data = toplo, aes(x = yr, y = predicted)) + 
+    geom_point(colour = 'deepskyblue3') +
+    geom_errorbar(aes(ymin = predicted - (1.96 * se), ymax = predicted + (1.96 * se)), colour = 'deepskyblue3') +
+    ylab('log10(chl)') +
+    theme_bw(base_family = 'serif', base_size = 16) + 
+    theme(
+      axis.title.x = element_blank()
+    ) +
+    ggtitle(ttl)
+  
+  return(p)
+  
 }, height = 320)
 ```
 
