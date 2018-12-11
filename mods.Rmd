@@ -455,7 +455,7 @@ renderPlot({
 ```{r}
 column(4,
          
-  sliderInput('dytr', 'Select seasonal trend aggregations (doy):', min = 1, max = 364, value = c(20, 354))
+  sliderInput('dytr', 'Select seasonal trend aggregations (doy):', min = 1, max = 365, value = c(21, 355))
    
 )
 
@@ -473,7 +473,7 @@ renderPlot({
     .[[1]]
   
   # title
-  dts <- as.Date(dytr, origin = as.Date("2018-01-01"))
+  dts <- as.Date(dytr, origin = as.Date("2017-12-31"))
   strt <- paste(month(dts[1], label = T, abbr = T), day(dts[1]))
   ends <- paste(month(dts[2], label = T, abbr = T), day(dts[2]))
   ttl <- paste0('Fitted averages with 95% confidence intervals: ', strt, '-',  ends)
