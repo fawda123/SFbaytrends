@@ -41,7 +41,7 @@ locs <- read.csv('ignore/usgs_station_lat_lon.csv') %>%
 save(locs, file = 'data/locs.RData', compress = 'xz')
 
 ######
-# get GAMs for each station, gam0, gam1, gam2, gam1* from baytrends
+# get GAMs for each station, gam0, gam1, gam2, gam6 from baytrends
 
 data(datprc)
 
@@ -139,7 +139,7 @@ modssta <- tomod %>%
     })
   )
 modssta <- modssta %>%
-  mutate(modi = factor(modi, levels = c(1, 2, 3, 4), labels = c('gam0', 'gam1', 'gam2', 'gam1*')))
+  mutate(modi = factor(modi, levels = c(1, 2, 3, 4), labels = c('gam0', 'gam1', 'gam2', 'gam6')))
 save(modssta, file = 'data/modssta.RData', compress = 'xz')
 
 ######
