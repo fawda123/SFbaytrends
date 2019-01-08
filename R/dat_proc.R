@@ -11,7 +11,7 @@ library(mgcv)
 
 dat <- read.csv('raw/df_18_36.csv', stringsAsFactors = F)
 
-# add date columns, convert parameter names, filter by years, remove d_chl
+# add date columns, convert parameter names, filter by years, remove d_chl, old do ests (calculated below)
 datprc <- dat %>% 
   mutate(
     date = ymd(date),
@@ -24,8 +24,53 @@ datprc <- dat %>%
     param = gsub('^s$', 'sal', param)
   ) %>% 
   filter(yr >= 1990 & yr <= 2017) %>% 
-  filter(!param %in% 'd_chl')
-  
+  filter(!param %in% c('dosat', 'docalc', 'd_chl'))
+         
+# get do bottom val
+dodat <- read.csv('raw/DO_subset_stations.csv', stringsAsFactors = F) %>% 
+ mutate(
+   date = ymd(date),
+   doy = yday(date), 
+   dec_time = decimal_date(date),
+   yr = year(date),
+   mo = month(date, label = T)
+ ) %>% 
+ rename(
+   dosat = DO_sat,
+   docalc = DO_mgL
+ ) %>% 
+ group_by(date, station) %>% 
+ filter(depth == max(depth, na.rm = T)) %>% # bottom do
+ ungroup %>% 
+ gather('param', 'value', dosat, docalc) %>% 
+ select(date, station, param, value, doy, dec_time, yr, mo) %>% 
+ filter(yr >= 1992 & yr <= 2017) %>% 
+ filter(!is.na(value))
+
+# get gpp estimates
+gppdat <- read.csv('raw/GPP_dataset.csv', stringsAsFactors = F) %>% 
+ select(dec_date, station, GPP) %>% 
+ mutate(
+   date = date_decimal(dec_date),
+   date = as.Date(date),
+   doy = yday(date),
+   yr = year(date),
+   mo = month(date, label = T)
+ ) %>% 
+ rename(
+   gpp = GPP,
+   dec_time = dec_date
+ ) %>% 
+ gather('param', 'value', gpp) %>% 
+ select(date, station, param, value, doy, dec_time, yr, mo) %>% 
+ filter(yr >= 1992 & yr <= 2017) %>% 
+ filter(!is.na(value))
+
+# combine new do ests, gpp with datprc
+datprc <- datprc %>% 
+ bind_rows(dodat, gppdat) %>% 
+ arrange(date, station, param)
+
 save(datprc, file = 'data/datprc.RData', compress = 'xz')
 
 ######
@@ -62,7 +107,7 @@ frms <- frms %>%
 # data to model, same as datprc, params in wide format, nested by station
 # crossed with frms
 tomod <- datprc %>% 
-  filter(param %in% c('chl', 'docalc', 'dosat')) %>% 
+  filter(param %in% c('chl', 'docalc', 'dosat', 'gpp')) %>% # add parameters here
   group_by(station, param) %>% 
   nest %>% 
   crossing(frms) %>% 
@@ -76,7 +121,7 @@ tomod <- datprc %>%
 # create models for every station, gam model eval
 modssta <- tomod %>%
   mutate(
-    kyear = purrr::pmap(list(modi, data), function(modi, data){
+    kyear = purrr::pmap(list(param, modi, data), function(param, modi, data){
       
       out <- NA
       
@@ -100,14 +145,18 @@ modssta <- tomod %>%
         # get upper bounds of knots
         out <- 12 * length(unique(data$yr))
         
+        # gpp have missing data in some months, so decrease upper k boundary
+        if(param == 'gpp')
+          out <- round(0.9 * nrow(data))
+        
       }
       
       return(out)
       
     }),
-    modv = purrr::pmap(list(station, data, modi, frm, kyear), function(station, data, modi, frm, kyear){
+    modv = purrr::pmap(list(station, param, data, modi, frm, kyear), function(station, param, data, modi, frm, kyear){
       
-      cat(station, modi, '\t')
+      cat(station, param, modi, '\t')
       
       # insert upper gamk1 rule for gam1
       if(modi %in% c(2, 3)){
@@ -152,10 +201,13 @@ modssta_docalc <- modssta %>%
   filter(param %in% 'docalc')
 modssta_dosat <- modssta %>% 
   filter(param %in% 'dosat')
+modssta_gpp <- modssta %>% 
+  filter(param %in% 'gpp')
 
 save(modssta_chl, file = 'data/modssta_chl.RData', compress = 'xz')
 save(modssta_docalc, file = 'data/modssta_docalc.RData', compress = 'xz')
 save(modssta_dosat, file = 'data/modssta_dosat.RData', compress = 'xz')
+save(modssta_gpp, file = 'data/modssta_gpp.RData', compress = 'xz')
 
 ######
 # check knots and fit
