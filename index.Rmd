@@ -226,8 +226,8 @@ prdplo <- reactive({
   
 })
 
-rawvalue <- reactive({
-  rawvalue <- mods()$data[[1]] %>% 
+rawval <- reactive({
+  rawval <- mods()$data[[1]] %>% 
     mutate(
       day = day(date)
     )
@@ -254,7 +254,7 @@ renderPlot({
 renderPlot({
   # plot
   p <- ggplot(prdplo(), aes(x = date)) + 
-    geom_point(data = rawvalue(), aes(y = log10(value)), size = 0.5) +
+    geom_point(data = rawval(), aes(y = log10(value)), size = 0.5) +
     geom_line(aes(y = value, colour = factor(modi)), size = 0.75, alpha = 0.8) + 
     stat_smooth(aes(y = value, group = modi), se = F, method = "loess", color = 'black', alpha = 0.7) +
     facet_wrap(~modi, ncol = 1) +
@@ -427,7 +427,7 @@ renderPlot({
   # inputs
   mod <- input$mod
   prdplo <- prdplo()
-  rawvalue <- rawvalue()
+  rawval <- rawval()
   trndswn <- trndswn()
   trndstx <- trndstx()
 
@@ -437,7 +437,7 @@ renderPlot({
   # plot
   p <- ggplot() + 
     geom_rect(data = trndswn, aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf, group = year, fill = bl), alpha = 0.7) +
-    geom_point(data = rawvalue, aes(x = date, y = log10(value)), size = 0.5) +
+    geom_point(data = rawval, aes(x = date, y = log10(value)), size = 0.5) +
     geom_line(data = toplo, aes(x = date, y = value)) + 
     theme_bw(base_family = 'serif', base_size = 16) + 
     scale_fill_manual(values = c('lightblue', 'lightgreen')) +
@@ -466,7 +466,7 @@ renderPlot({
   # inputs
   dytr <- input$dytr
   mod <- input$mod
-  rawvalue <- rawvalue()
+  rawval <- rawval()
   prdplo <- prdplo()
   
   # get selected model
@@ -481,7 +481,7 @@ renderPlot({
   ttl <- paste0('Fitted averages with 95% confidence intervals: ', strt, '-',  ends)
   
   # aggregated data
-  toplo <- extractPeriodAverages(modin, rawvalue, dytr[1], dytr[2])
+  toplo <- extractPeriodAverages(modin, rawval, dytr[1], dytr[2])
   
   # plot output
   p <- ggplot(data = toplo, aes(x = yr, y = predicted)) + 
@@ -543,7 +543,7 @@ renderPlot({
   
   # plot
   p <- ggplot(toplo, aes(x = date)) + 
-    geom_point(data = rawvalue(), aes(y = log10(value)), size = 0.5) +
+    geom_point(data = rawval(), aes(y = log10(value)), size = 0.5) +
     geom_line(aes(y = value, group = month, colour = month), size = 1, alpha = 0.7) + 
     theme_bw(base_family = 'serif', base_size = 16) + 
     ylab('log10(chl)') +
@@ -563,7 +563,7 @@ renderPlot({
 
   # plot
   p <- ggplot(toplo, aes(x = day)) + 
-    # geom_point(data = rawvalue(), aes(y = log10(value)), size = 0.5) +
+    # geom_point(data = rawval(), aes(y = log10(value)), size = 0.5) +
     geom_line(aes(y = value, group = yr, colour = yr), size = 1, alpha = 0.7) + 
     scale_colour_viridis_c() +
     theme_bw(base_family = 'serif', base_size = 16) + 
@@ -756,10 +756,10 @@ renderTable({
 renderPlot({
 
   req(prdplok1())
-  rawvalue <- modsk1()$data[[1]]
+  rawval <- modsk1()$data[[1]]
 
   p <- ggplot() + 
-    geom_point(data = rawvalue, aes(x = dec_time, y = log10(value)), size = 0.5) +
+    geom_point(data = rawval, aes(x = dec_time, y = log10(value)), size = 0.5) +
     geom_line(data = prdplok1(), aes(x = dec_time, group = factor(frms), colour = frms, y = value), alpha = 0.8, size = 0.75) + 
     theme_bw(base_family = 'serif', base_size = 16) + 
     theme(
