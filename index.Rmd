@@ -28,7 +28,7 @@ library(viridis)
 source('R/funcs.R')
 
 data(datprc)
-data(modssta)
+data(modssta_chl)
 data(locs)
 data(map)
 data(modkcmp)
@@ -165,7 +165,7 @@ The two plots show the predicted trends from each of the four models.  The first
 
 ```{r}
 mods <- reactive({
-  modssta %>% filter(station %in% input$station)
+  modssta_chl %>% filter(station %in% input$station)
 })
 
 # smoother stats of GAMs
@@ -214,7 +214,7 @@ prdplo <- reactive({
   
       prd <- predict(modv, newdata = prddat)
       
-      prddat <- prddat %>% mutate(chl = prd)
+      prddat <- prddat %>% mutate(value = prd)
   
       return(prddat)
       
@@ -226,8 +226,8 @@ prdplo <- reactive({
   
 })
 
-rawchl <- reactive({
-  rawchl <- mods()$data[[1]] %>% 
+rawvalue <- reactive({
+  rawvalue <- mods()$data[[1]] %>% 
     mutate(
       day = day(date)
     )
@@ -236,7 +236,7 @@ rawchl <- reactive({
 # facet by mod, doy x axis, lines by year
 renderPlot({
   p <- ggplot(prdplo(), aes(x = doy, group = factor(yr), colour = yr)) + 
-    geom_line(aes(y = chl)) + 
+    geom_line(aes(y = value)) + 
     theme_bw(base_family = 'serif', base_size = 16) + 
     theme(
       legend.position = 'top', 
@@ -254,9 +254,9 @@ renderPlot({
 renderPlot({
   # plot
   p <- ggplot(prdplo(), aes(x = date)) + 
-    geom_point(data = rawchl(), aes(y = log10(chl)), size = 0.5) +
-    geom_line(aes(y = chl, colour = factor(modi)), size = 0.75, alpha = 0.8) + 
-    stat_smooth(aes(y = chl, group = modi), se = F, method = "loess", color = 'black', alpha = 0.7) +
+    geom_point(data = rawvalue(), aes(y = log10(value)), size = 0.5) +
+    geom_line(aes(y = value, colour = factor(modi)), size = 0.75, alpha = 0.8) + 
+    stat_smooth(aes(y = value, group = modi), se = F, method = "loess", color = 'black', alpha = 0.7) +
     facet_wrap(~modi, ncol = 1) +
     scale_color_viridis_d() + 
     theme_bw(base_family = 'serif', base_size = 16) + 
@@ -266,6 +266,7 @@ renderPlot({
       strip.text = element_blank(), 
       strip.background = element_blank()
       ) + 
+    ylab('log10(chl)') +
     ggtitle(paste0('Station', input$station))
   p
 }, height = 800)
@@ -278,7 +279,7 @@ __Selected station:  `r renderText({input$station})`__
 The following provides additional information for one of the four models for the selected station.  __Use the drop down menu to select a specific model.__  The tables repeat the information above but only for the selected model.  The four plots show 1) plot diagnostics of the model fit, 2) the predicted trends across the time series (and options for trend assessment), 3) the predicted trends as seasonal aggregations with 95% confidence intervals within each year, 4) the predicted trends with separate lines for each month across the time series, and 5) a three-dimensional fit of the estimated trends across year and day of year with the z-axis showing estimated chlorophyll. 
 
 ```{r, echo = F}
-selectInput('mod', "Select a model:", unique(modssta$modi))
+selectInput('mod', "Select a model:", unique(modssta_chl$modi))
 ```
 ```{r}
 # smoother stats of GAMs
@@ -420,13 +421,13 @@ trndstx <- reactive({
 ```
 
 ```{r}
-# plot predictions, selected mod
+# plot trends for selected years, selected mod
 renderPlot({
 
   # inputs
   mod <- input$mod
   prdplo <- prdplo()
-  rawchl <- rawchl()
+  rawvalue <- rawvalue()
   trndswn <- trndswn()
   trndstx <- trndstx()
 
@@ -436,8 +437,8 @@ renderPlot({
   # plot
   p <- ggplot() + 
     geom_rect(data = trndswn, aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf, group = year, fill = bl), alpha = 0.7) +
-    geom_point(data = rawchl, aes(x = date, y = log10(chl)), size = 0.5) +
-    geom_line(data = toplo, aes(x = date, y = chl)) + 
+    geom_point(data = rawvalue, aes(x = date, y = log10(value)), size = 0.5) +
+    geom_line(data = toplo, aes(x = date, y = value)) + 
     theme_bw(base_family = 'serif', base_size = 16) + 
     scale_fill_manual(values = c('lightblue', 'lightgreen')) +
     theme(
@@ -447,6 +448,7 @@ renderPlot({
       strip.background = element_blank(), 
       axis.title.x = element_blank()
       ) +
+    ylab('log10(chl)') +
     ggtitle(trndstx)
   p
 }, height = 320)
@@ -464,7 +466,7 @@ renderPlot({
   # inputs
   dytr <- input$dytr
   mod <- input$mod
-  rawchl <- rawchl()
+  rawvalue <- rawvalue()
   prdplo <- prdplo()
   
   # get selected model
@@ -479,7 +481,7 @@ renderPlot({
   ttl <- paste0('Fitted averages with 95% confidence intervals: ', strt, '-',  ends)
   
   # aggregated data
-  toplo <- extractPeriodAverages(modin, rawchl, dytr[1], dytr[2])
+  toplo <- extractPeriodAverages(modin, rawvalue, dytr[1], dytr[2])
   
   # plot output
   p <- ggplot(data = toplo, aes(x = yr, y = predicted)) + 
@@ -515,7 +517,7 @@ prdplost <- reactive({
           yr = year(date)
           )
       prd <- predict(modv, newdata = data)
-      out <- data.frame(data, chl = prd)
+      out <- data.frame(data, value = prd)
       
       return(out)
       
@@ -541,9 +543,10 @@ renderPlot({
   
   # plot
   p <- ggplot(toplo, aes(x = date)) + 
-    geom_point(data = rawchl(), aes(y = log10(chl)), size = 0.5) +
-    geom_line(aes(y = chl, group = month, colour = month), size = 1, alpha = 0.7) + 
+    geom_point(data = rawvalue(), aes(y = log10(value)), size = 0.5) +
+    geom_line(aes(y = value, group = month, colour = month), size = 1, alpha = 0.7) + 
     theme_bw(base_family = 'serif', base_size = 16) + 
+    ylab('log10(chl)') +
     theme(
       legend.position = 'top'
       ) 
@@ -560,8 +563,8 @@ renderPlot({
 
   # plot
   p <- ggplot(toplo, aes(x = day)) + 
-    # geom_point(data = rawchl(), aes(y = log10(chl)), size = 0.5) +
-    geom_line(aes(y = chl, group = yr, colour = yr), size = 1, alpha = 0.7) + 
+    # geom_point(data = rawvalue(), aes(y = log10(value)), size = 0.5) +
+    geom_line(aes(y = value, group = yr, colour = yr), size = 1, alpha = 0.7) + 
     scale_colour_viridis_c() +
     theme_bw(base_family = 'serif', base_size = 16) + 
     facet_wrap(~mo, ncol = 4) + 
@@ -580,10 +583,10 @@ renderPlot({
 ```{r, out.width = "100%"}
 renderPlotly({
 
-  logchl <- prdplost() %>% 
+  logvalue <- prdplost() %>% 
     select(-date, -dec_time) %>% 
     filter(!yr %in% 2018) %>% 
-    spread(yr, chl) %>% 
+    spread(yr, value) %>% 
     select(-doy) %>% 
     as.matrix
   
@@ -597,7 +600,7 @@ renderPlotly({
     ambient = 0.9
   )
   
-  p <- plot_ly(z = ~logchl, height = 600) %>% 
+  p <- plot_ly(z = ~logvalue, height = 600) %>% 
     add_surface(colors = viridis(12)) %>% 
     layout(scene = scene)
   p
@@ -624,8 +627,8 @@ __Selected station: `r renderText({input$station})`__
 ```{r}
 column(4, selectInput('gamtyp', 'Select gam type:', 
                       choices = list(
-                        gam1 = "log10(chl) ~ dec_time + s(dec_time) + s(doy, bs = 'cc')", 
-                        gam2 = "log10(chl) ~ dec_time + s(dec_time) + s(doy, bs = 'cc') + ti(dec_time, doy, bs = c('tp', 'cc'))" 
+                        gam1 = "log10(value) ~ dec_time + s(dec_time) + s(doy, bs = 'cc')", 
+                        gam2 = "log10(value) ~ dec_time + s(dec_time) + s(doy, bs = 'cc') + ti(dec_time, doy, bs = c('tp', 'cc'))" 
                           )
                       )
        )
@@ -645,7 +648,7 @@ column(4,
 ```{r}
 # k1 comparisons, models only
 modsk1 <- reactive({
-  
+
   req(input$gamk1_2)
   
   # inputs
@@ -708,7 +711,7 @@ prdplok1 <- reactive({
   
       prd <- predict(modv, newdata = prddat)
       
-      prddat <- prddat %>% mutate(chl = prd)
+      prddat <- prddat %>% mutate(value = prd)
   
       return(prddat)
       
@@ -753,11 +756,11 @@ renderTable({
 renderPlot({
 
   req(prdplok1())
-  rawchl <- modsk1()$data[[1]]
+  rawvalue <- modsk1()$data[[1]]
 
   p <- ggplot() + 
-    geom_point(data = rawchl, aes(x = dec_time, y = log10(chl)), size = 0.5) +
-    geom_line(data = prdplok1(), aes(x = dec_time, group = factor(frms), colour = frms, y = chl), alpha = 0.8, size = 0.75) + 
+    geom_point(data = rawvalue, aes(x = dec_time, y = log10(value)), size = 0.5) +
+    geom_line(data = prdplok1(), aes(x = dec_time, group = factor(frms), colour = frms, y = value), alpha = 0.8, size = 0.75) + 
     theme_bw(base_family = 'serif', base_size = 16) + 
     theme(
       legend.position = 'top', 

@@ -41,16 +41,16 @@ locs <- read.csv('ignore/usgs_station_lat_lon.csv') %>%
 save(locs, file = 'data/locs.RData', compress = 'xz')
 
 ######
-# get GAMs for each station, gam0, gam1, gam2, gam6 from baytrends
+# get GAMs for each station, chl, docalc, dosat, gam0, gam1, gam2, gam6 from baytrends
 
 data(datprc)
 
 # smooths to evaluate
 frms <- c(
-  "log10(chl) ~ dec_time + s(doy, bs = 'cc')",  
-  "log10(chl) ~ dec_time + s(dec_time) + s(doy, bs = 'cc')",
-  "log10(chl) ~ dec_time + s(dec_time) + s(doy, bs = 'cc') + ti(dec_time, doy, bs = c('tp', 'cc'))",
-  "log10(chl) ~ dec_time + s(dec_time) + s(doy, bs = 'cc')"
+  "dec_time + s(doy, bs = 'cc')",  
+  "dec_time + s(dec_time) + s(doy, bs = 'cc')",
+  "dec_time + s(dec_time) + s(doy, bs = 'cc') + ti(dec_time, doy, bs = c('tp', 'cc'))",
+  "dec_time + s(dec_time) + s(doy, bs = 'cc')"
 ) %>% 
   as.list
 
@@ -62,12 +62,14 @@ frms <- frms %>%
 # data to model, same as datprc, params in wide format, nested by station
 # crossed with frms
 tomod <- datprc %>% 
-  spread(param, value) %>% 
-  group_by(station) %>% 
+  filter(param %in% c('chl', 'docalc', 'dosat')) %>% 
+  group_by(station, param) %>% 
   nest %>% 
   crossing(frms) %>% 
   mutate(
     modi = as.list(modi), 
+    param = ifelse(param %in% 'chl', 'log10(chl)', param),
+    frm = ifelse(param %in% 'log10(chl)', paste0('log10(value) ~ ', frm), paste0('value ~ ', frm)),
     frm = as.list(frm)
   )
 
@@ -138,9 +140,22 @@ modssta <- tomod %>%
       
     })
   )
+
+# rename gam mod types
 modssta <- modssta %>%
   mutate(modi = factor(modi, levels = c(1, 2, 3, 4), labels = c('gam0', 'gam1', 'gam2', 'gam6')))
-save(modssta, file = 'data/modssta.RData', compress = 'xz')
+
+# separate parameters into diff files (single is too large for git)
+modssta_chl <- modssta %>% 
+  filter(param %in% 'log10(chl)')
+modssta_docalc <- modssta %>% 
+  filter(param %in% 'docalc')
+modssta_dosat <- modssta %>% 
+  filter(param %in% 'dosat')
+
+save(modssta_chl, file = 'data/modssta_chl.RData', compress = 'xz')
+save(modssta_docalc, file = 'data/modssta_docalc.RData', compress = 'xz')
+save(modssta_dosat, file = 'data/modssta_dosat.RData', compress = 'xz')
 
 ######
 # check knots and fit

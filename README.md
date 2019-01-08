@@ -1,6 +1,6 @@
 # README
 
-Materials for analysis of SF bay trends, see results [here](http://162.243.131.102:3838/SFbaytrends/mods.Rmd)
+Materials for analysis of SF bay trends, see results [here](https://sccwrp.shinyapps.io/sfbaytrends/)
 
 ## Data
 
