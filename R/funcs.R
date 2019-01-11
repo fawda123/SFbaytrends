@@ -163,7 +163,8 @@ dynagam <- function(mod_in, dat_in, cvr, grd = 30, years = NULL, alpha = 1,
 # @param modv gam model
 # @param base.yr.set vector of starting years, defaults to first year plus one
 # @param test.yr.set vector of ending years, default to last year minus one
-gamdiff <- function(modv, base.yr.set = NA, test.yr.set = NA){
+# @param logspace logical if response variable from model is in logspace (base 10)
+gamdiff <- function(modv, base.yr.set = NA, test.yr.set = NA, logspace = TRUE){
   
   # input data used to create model
   gamdat <- modv$model
@@ -243,8 +244,10 @@ gamdiff <- function(modv, base.yr.set = NA, test.yr.set = NA){
   halpha    <- alpha/2
   diff.ci   <- c(diff.est - qnorm(1-halpha) * diff.se,diff.est + qnorm(1-halpha) *diff.se)
   
-  # back transform mean (03Nov)
-  per.mn.obs <- 10^(period.avg) 
+  # observed units, backtransform if needed
+  per.mn.obs <- period.avg
+  if(logspace)
+    per.mn.obs <- 10^(per.mn.obs) 
   
   # calculate percent change (03Nov)
   pct.chg <- 100*((per.mn.obs[2] - per.mn.obs[1])/per.mn.obs[1])

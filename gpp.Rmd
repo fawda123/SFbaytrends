@@ -352,7 +352,7 @@ trnds <- reactive({
     .[[1]]
   
   # trnds
-  trnds <- gamdiff(modv, yrbs, yrts) %>% 
+  trnds <- gamdiff(modv, yrbs, yrts, logspace = F) %>% 
     .[c('pdat', 'per.mn', 'per.mn.obs', 'pct.chg', 'diff.pval')]
   
   return(trnds)
@@ -402,7 +402,7 @@ trndstx <- reactive({
     mutate(
       value = round(value, 2)
     )
-  out <- paste0('Base: ', out$value[3], ' (', out$value[1], '), Test: ', out$value[4], ' (', out$value[2], '), Change: ', out$value[5], '%, ', pval)
+  out <- paste0('Base: ', out$value[3], ', Test: ', out$value[4], ', Change: ', out$value[5], '%, ', pval)
   
   return(out)
 
