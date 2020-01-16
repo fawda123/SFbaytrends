@@ -83,7 +83,8 @@ rawplo <- datprc %>%
       return(p)
       
     })
-  )
+  ) %>% 
+  ungroup
 ```
 
 The following plots show the raw data for all monitoring stations and parameters in South Bay, 1990 - 2017.  Select the parameter, plot type (total time series, by year, or by month), and variable transformation.  The year and month plots are aggregated boxplots of all observations at a station for each selected time period.
@@ -163,7 +164,7 @@ renderTable({
     enframe %>% 
     rename(model = name) %>% 
     mutate(model = factor(model, levels = c(1, 2, 3, 4), labels = c('gam0', 'gam1', 'gam2', 'gam6'))) %>% 
-    unnest
+    unnest(value)
 })
 
 # summary stats of GAMs, model fit/perf
@@ -178,7 +179,7 @@ renderTable({
       model = factor(model, levels = c(1, 2, 3, 4), labels = c('gam0', 'gam1', 'gam2', 'gam6')),
       k = as.integer(mods()$kyear)
       ) %>% 
-    unnest
+    unnest(value)
 })
 ```
 
@@ -209,7 +210,7 @@ prdplo <- reactive({
       
     })) %>% 
     select(modi, prddat) %>% 
-    unnest
+    unnest(prddat)
   
   return(prdplo)
   
@@ -398,7 +399,7 @@ trndstx <- reactive({
   pval <- p_ast(trnds$diff.pval)
   out <- trnds[!names(trnds) %in% c('diff.pval', 'pdat')] %>% 
     enframe %>% 
-    unnest %>% 
+    unnest(value) %>% 
     mutate(
       value = round(value, 2)
     )
@@ -514,7 +515,7 @@ prdplost <- reactive({
   
   ) %>% 
   select(modi, prddat) %>% 
-  unnest %>% 
+  unnest(prddat) %>% 
   select(-modi)
   
   return(outprd)

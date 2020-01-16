@@ -84,7 +84,8 @@ rawplo <- datprc %>%
       return(p)
       
     })
-  )
+  ) %>% 
+  ungroup
 ```
 
 The following plots show the raw data for all monitoring stations and parameters in South Bay, 1990 - 2017.  Select the parameter, plot type (total time series, by year, or by month), and variable transformation.  The year and month plots are aggregated boxplots of all observations at a station for each selected time period.  The variable transformation can be used to show the observations in arithmetic or logarithmic space.
@@ -174,7 +175,7 @@ renderTable({
     enframe %>% 
     rename(model = name) %>% 
     mutate(model = factor(model, levels = c(1, 2, 3, 4), labels = c('gam0', 'gam1', 'gam2', 'gam6'))) %>% 
-    unnest
+    unnest(value)
 })
 
 # summary stats of GAMs, model fit/perf
@@ -189,7 +190,7 @@ renderTable({
       model = factor(model, levels = c(1, 2, 3, 4), labels = c('gam0', 'gam1', 'gam2', 'gam6')),
       k = as.integer(mods()$kyear)
       ) %>% 
-    unnest
+    unnest(value)
 })
 ```
 
@@ -220,7 +221,7 @@ prdplo <- reactive({
       
     })) %>% 
     select(modi, prddat) %>% 
-    unnest
+    unnest(prddat)
   
   return(prdplo)
   
@@ -409,7 +410,7 @@ trndstx <- reactive({
   pval <- p_ast(trnds$diff.pval)
   out <- trnds[!names(trnds) %in% c('diff.pval', 'pdat')] %>% 
     enframe %>% 
-    unnest %>% 
+    unnest(value) %>% 
     mutate(
       value = round(value, 2)
     )
@@ -525,7 +526,7 @@ prdplost <- reactive({
   
   ) %>% 
   select(modi, prddat) %>% 
-  unnest %>% 
+  unnest(prddat) %>% 
   select(-modi)
   
   return(outprd)
@@ -666,13 +667,13 @@ modsk1 <- reactive({
   })
   
   # two compared models wiht different k
-  modsk1 <- mods$data[[1]] %>% 
-    crossing(frms = frms, data = .) %>% 
+  modsk1 <- frms %>% 
+    tibble(frms = .) %>% 
     group_by(frms) %>% 
-    nest %>% 
     mutate(
+      data = purrr::map(., function(x) mods$data[[1]]),
       modv = pmap(list(frms, data), function(frms, data){
-        
+ 
         gam(as.formula(frms),
           knots = list(doy = c(1, 366)),
           data = data,
@@ -682,7 +683,8 @@ modsk1 <- reactive({
         
       })
       
-    )
+    ) %>% 
+    ungroup
 
   return(modsk1)
 
@@ -717,7 +719,7 @@ prdplok1 <- reactive({
       
     })) %>% 
     select(-data, -modv) %>% 
-    unnest
+    unnest(prddat)
 
   return(prdplok1)
   
@@ -744,7 +746,7 @@ renderTable({
         )
       ) %>% 
     dplyr::select(-modv, -data) %>% 
-    unnest
+    unnest(ests)
   
   modsk1
   

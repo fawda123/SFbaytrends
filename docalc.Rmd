@@ -83,7 +83,8 @@ rawplo <- datprc %>%
       return(p)
       
     })
-  )
+  ) %>% 
+  ungroup
 ```
 
 The following plots show the raw data for all monitoring stations and parameters in South Bay, 1990 - 2017.  Select the parameter, plot type (total time series, by year, or by month), and variable transformation.  The year and month plots are aggregated boxplots of all observations at a station for each selected time period.
@@ -98,7 +99,7 @@ column(4, NULL)
 ```{r}
 # get the plot
 toplo <- reactive({
-
+  
   sel <- rawplo %>% 
     filter(station %in% input$station) %>% 
     select(matches(input$typ)) %>% 
@@ -113,7 +114,7 @@ toplo <- reactive({
 
 # make the plot
 renderPlot({
-  
+
   # inputs
   station <- input$station
   toplo <- toplo() + 
@@ -163,7 +164,7 @@ renderTable({
     enframe %>% 
     rename(model = name) %>% 
     mutate(model = factor(model, levels = c(1, 2, 3, 4), labels = c('gam0', 'gam1', 'gam2', 'gam6'))) %>% 
-    unnest
+    unnest(value)
 })
 
 # summary stats of GAMs, model fit/perf
@@ -171,14 +172,15 @@ renderTable({
   map(mods()$modv, ~ data.frame(
       AIC = AIC(.x), 
       GCV = .x$gcv.ubre,
-      R2 = summary(.x)$r.sq)) %>% 
-    enframe %>% 
+      R2 = summary(.x)$r.sq)
+      ) %>% 
+    enframe() %>% 
     rename(model = name) %>% 
     mutate(
       model = factor(model, levels = c(1, 2, 3, 4), labels = c('gam0', 'gam1', 'gam2', 'gam6')),
       k = as.integer(mods()$kyear)
       ) %>% 
-    unnest
+    unnest(value)
 })
 ```
 
@@ -209,7 +211,7 @@ prdplo <- reactive({
       
     })) %>% 
     select(modi, prddat) %>% 
-    unnest
+    unnest(prddat)
   
   return(prdplo)
   
@@ -398,7 +400,7 @@ trndstx <- reactive({
   pval <- p_ast(trnds$diff.pval)
   out <- trnds[!names(trnds) %in% c('diff.pval', 'pdat')] %>% 
     enframe %>% 
-    unnest %>% 
+    unnest(value) %>% 
     mutate(
       value = round(value, 2)
     )
@@ -514,7 +516,7 @@ prdplost <- reactive({
   
   ) %>% 
   select(modi, prddat) %>% 
-  unnest %>% 
+  unnest(prddat) %>% 
   select(-modi)
   
   return(outprd)
