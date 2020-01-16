@@ -87,26 +87,34 @@ rawplo <- datprc %>%
   ungroup
 ```
 
-The following plots show the raw data for all monitoring stations and parameters in South Bay, 1990 - 2017.  Select the parameter, plot type (total time series, by year, or by month), and variable transformation.  The year and month plots are aggregated boxplots of all observations at a station for each selected time period.
+The following plots show the raw data for all monitoring stations and parameters in South Bay, 1990 - 2017.  Select the parameter, plot type (total time series, by year, or by month), and variable transformation.  The year and month plots are aggregated boxplots of all observations at a station for each selected time period. The variable transformation can be used to show the observations in arithmetic or logarithmic space.
 
 ```{r, echo = F}
 # selection widgets
 column(4, selectInput("station", "Choose station:", sort(unique(datprc$station))))
 column(4, selectInput("typ", "Choose plot type:", c('tot', 'yrs', 'mos')))
-column(4, NULL)
+column(4, selectInput("log", "Log-space:", c(T, F)))
 ```
 
 ```{r}
 # get the plot
 toplo <- reactive({
-
+  
   sel <- rawplo %>% 
     filter(station %in% input$station) %>% 
     select(matches(input$typ)) %>% 
     .[[1]] %>% 
     .[[1]]
   
-  sel <- sel + scale_y_continuous('GPP (mg C m-2 d-1)')
+  if(input$log){
+  
+    sel <- sel + scale_y_log10('GPP (mg C m-2 d-1)')
+    
+  } else {
+    
+    sel <- sel + scale_y_continuous('GPP (mg C m-2 d-1)')
+    
+  }
     
   return(sel)
   
@@ -133,7 +141,9 @@ renderPlot({
 
 ```
 
-## GAMs of gross primary production (GPP, mg C m-2 d-1) with annual, seasonal trends
+## GAMs of log-transformed gross primary production (GPP, mg C m-2 d-1) with annual, seasonal trends
+
+*Note:* All plots below are shown with model results in log-space, although plot axis-scaling is arithmetic. 
 
 Generalized additive models (GAMs) were developed to describe trends in GPP at each of the monitoring stations in South Bay.  The station and selected model can be chosen from the drop down menus.  Four types of GAMs were developed for the time series at each station to model GPP as a function of time, where time is measured as an annual and seasonal effect.  The four models descibe the time components differently and represent increasing levels of complexity to describe the GPP trend:
 
@@ -233,7 +243,7 @@ renderPlot({
       legend.title = element_blank()
       ) + 
     scale_color_viridis_c() + 
-    scale_y_continuous('GPP (mg C m-2 d-1)') +
+    scale_y_continuous('log10(GPP) (mg C m-2 d-1)') +
     facet_wrap(~ modi, ncol = 4) +
     guides(colour = guide_colourbar(barheight = 1, barwidth = 20)) + 
     ggtitle(paste0('Station', input$station))
@@ -244,7 +254,7 @@ renderPlot({
 renderPlot({
   # plot
   p <- ggplot(prdplo(), aes(x = date)) + 
-    geom_point(data = rawval(), aes(y = value), size = 0.5) +
+    geom_point(data = rawval(), aes(y = log10(value)), size = 0.5) +
     geom_line(aes(y = value, colour = factor(modi)), size = 0.75, alpha = 0.8) + 
     stat_smooth(aes(y = value, group = modi), se = F, method = "loess", color = 'black', alpha = 0.7) +
     facet_wrap(~modi, ncol = 1) +
@@ -256,7 +266,7 @@ renderPlot({
       strip.text = element_blank(), 
       strip.background = element_blank()
       ) + 
-    ylab('GPP (mg C m-2 d-1)') +
+    ylab('log10(GPP) (mg C m-2 d-1)') +
     ggtitle(paste0('Station', input$station))
   p
 }, height = 800)
@@ -427,7 +437,7 @@ renderPlot({
   # plot
   p <- ggplot() + 
     geom_rect(data = trndswn, aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf, group = year, fill = bl), alpha = 0.7) +
-    geom_point(data = rawval, aes(x = date, y = value), size = 0.5) +
+    geom_point(data = rawval, aes(x = date, y = log10(value)), size = 0.5) +
     geom_line(data = toplo, aes(x = date, y = value)) + 
     theme_bw(base_family = 'serif', base_size = 16) + 
     scale_fill_manual(values = c('lightblue', 'lightgreen')) +
@@ -438,7 +448,7 @@ renderPlot({
       strip.background = element_blank(), 
       axis.title.x = element_blank()
       ) +
-    ylab('GPP (mg C m-2 d-1)') +
+    ylab('log10(GPP) (mg C m-2 d-1)') +
     ggtitle(trndstx)
   p
 }, height = 320)
@@ -477,7 +487,7 @@ renderPlot({
   p <- ggplot(data = toplo, aes(x = yr, y = predicted)) + 
     geom_point(colour = 'deepskyblue3') +
     geom_errorbar(aes(ymin = predicted - (1.96 * se), ymax = predicted + (1.96 * se)), colour = 'deepskyblue3') +
-    ylab('GPP (mg C m-2 d-1)') +
+    ylab('log10(GPP) (mg C m-2 d-1)') +
     theme_bw(base_family = 'serif', base_size = 16) + 
     theme(
       axis.title.x = element_blank()
@@ -533,10 +543,10 @@ renderPlot({
   
   # plot
   p <- ggplot(toplo, aes(x = date)) + 
-    geom_point(data = rawval(), aes(y = value), size = 0.5) +
+    geom_point(data = rawval(), aes(y = log10(value)), size = 0.5) +
     geom_line(aes(y = value, group = month, colour = month), size = 1, alpha = 0.7) + 
     theme_bw(base_family = 'serif', base_size = 16) + 
-    ylab('GPP (mg C m-2 d-1)') +
+    ylab('log10(GPP) (mg C m-2 d-1)') +
     theme(
       legend.position = 'top'
       ) 
@@ -553,7 +563,7 @@ renderPlot({
 
   # plot
   p <- ggplot(toplo, aes(x = day)) + 
-    # geom_point(data = rawval(), aes(y = value), size = 0.5) +
+    # geom_point(data = rawval(), aes(y = log10(value)), size = 0.5) +
     geom_line(aes(y = value, group = yr, colour = yr), size = 1, alpha = 0.7) + 
     scale_colour_viridis_c() +
     theme_bw(base_family = 'serif', base_size = 16) + 
@@ -564,7 +574,7 @@ renderPlot({
       legend.title = element_blank()
       ) + 
     guides(colour = guide_colourbar(barheight = 1, barwidth = 20)) + 
-    ylab('GPP (mg C m-2 d-1)')
+    ylab('log10(GPP) (mg C m-2 d-1)')
   p
   
 }, height = 650)
@@ -573,7 +583,7 @@ renderPlot({
 ```{r, out.width = "100%"}
 renderPlotly({
 
-  value <- prdplost() %>% 
+  logvalue <- prdplost() %>% 
     select(-date, -dec_time) %>% 
     filter(!yr %in% 2018) %>% 
     spread(yr, value) %>% 
@@ -585,12 +595,12 @@ renderPlotly({
     aspectratio = list(x = 1, y = 1, z = 0.5), 
     xaxis = list(title = 'Years from time zero'), 
     yaxis = list(title = 'Day of year'), 
-    zaxis = list(title = 'GPP (mg C m-2 d-1)'),
+    zaxis = list(title = 'log10(GPP) (mg C m-2 d-1)'),
     roughness = .01,
     ambient = 0.9
   )
   
-  p <- plot_ly(z = ~value, height = 600) %>% 
+  p <- plot_ly(z = ~logvalue, height = 600) %>% 
     add_surface(colors = viridis(12)) %>% 
     layout(scene = scene)
   p

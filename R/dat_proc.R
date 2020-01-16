@@ -102,7 +102,7 @@ frms <- c(
 # enframe frms for combine with tomod
 frms <- frms %>% 
   enframe('modi', 'frm') %>% 
-  unnest
+  unnest(frm)
 
 # data to model, same as datprc, params in wide format, nested by station
 # crossed with frms
@@ -114,7 +114,8 @@ tomod <- datprc %>%
   mutate(
     modi = as.list(modi), 
     param = ifelse(param %in% 'chl', 'log10(chl)', param),
-    frm = ifelse(param %in% 'log10(chl)', paste0('log10(value) ~ ', frm), paste0('value ~ ', frm)),
+    param = ifelse(param %in% 'gpp', 'log10(gpp)', param),
+    frm = ifelse(param %in% c('log10(gpp)', 'log10(chl)'), paste0('log10(value) ~ ', frm), paste0('value ~ ', frm)),
     frm = as.list(frm)
   )
 
@@ -146,7 +147,7 @@ modssta <- tomod %>%
         out <- 12 * length(unique(data$yr))
         
         # gpp have missing data in some months, so decrease upper k boundary
-        if(param == 'gpp')
+        if(param == 'log10(gpp)')
           out <- round(0.9 * nrow(data))
         
       }
@@ -202,7 +203,7 @@ modssta_docalc <- modssta %>%
 modssta_dosat <- modssta %>% 
   filter(param %in% 'dosat')
 modssta_gpp <- modssta %>% 
-  filter(param %in% 'gpp')
+  filter(param %in% 'log10(gpp)')
 
 save(modssta_chl, file = 'data/modssta_chl.RData', compress = 'xz')
 save(modssta_docalc, file = 'data/modssta_docalc.RData', compress = 'xz')
