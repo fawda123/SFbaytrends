@@ -128,15 +128,13 @@ modssta <- tomod %>%
       
       # insert upper gamk1 rule for gam1
       if(modi %in% c(2, 3)){
-        
+  
         # get upper bounds of knots
         out <- data$yr %>%
           unique %>%
           length 
-        out <- out * (2/3) %>% 
-          round(., 0)
-        out <- out %>% 
-          pmax(10, .)
+        out <- round(out * (2/3), 0)
+        out <- pmax(10, out)
         
       }
       
