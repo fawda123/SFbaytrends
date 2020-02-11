@@ -84,5 +84,5 @@ ggplot(prdplo, aes(x = date)) +
     strip.text = element_blank(), 
     strip.background = element_blank()
   ) + 
-  ylab('log10(chl)')
+  ylab('value')
 

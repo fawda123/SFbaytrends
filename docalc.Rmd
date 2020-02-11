@@ -24,6 +24,7 @@ library(ggmap)
 library(gridExtra)
 library(shinyWidgets)
 library(viridis)
+library(mixmeta)
 
 source('R/funcs.R')
 
@@ -446,13 +447,23 @@ renderPlot({
 ```
 
 ```{r}
-column(4,
+column(12, 
+  column(6,
+    sliderInput('dytr', 'Select seasonal trend aggregations (doy):', min = 1, max = 365, value = c(21, 355))
+  ),
+  column(6,
+    renderUI({
          
-  sliderInput('dytr', 'Select seasonal trend aggregations (doy):', min = 1, max = 365, value = c(21, 355))
-   
+      # unique years x 2/3
+      yrs <- mods()$data[[1]] %>% pull(yr) %>% unique
+
+      sliderInput('yrtr', 'Select window to test:', min = min(yrs), max = max(yrs), value = c(2010, 2017), sep = "")
+      
+    })
+  )
 )
 
-renderPlot({
+seasaggs <- reactive({
   
   # inputs
   dytr <- input$dytr
@@ -465,25 +476,74 @@ renderPlot({
     pull(modv) %>% 
     .[[1]]
   
+  # aggregated data
+  out <- extractPeriodAverages(modin, rawval, dytr[1], dytr[2])
+
+  return(out)  
+
+})
+
+mixmet <- reactive({
+  
+  # input
+  yrtr <- input$yrtr
+  seasaggs <- seasaggs()
+  
+  totrnd <- seasaggs %>% 
+    mutate(S = se^2) %>% 
+    dplyr::filter(yr %in% seq(yrtr[1], yrtr[2]))
+    
+  out <- mixmeta(predicted ~ yr, S = S, random = ~1|yr, data = totrnd, method = 'reml')
+  
+  return(out)
+  
+})
+
+renderPlot({
+  
+  # inputs
+  dytr <- input$dytr
+  yrtr <- input$yrtr
+  mixmet <- mixmet()
+  seasaggs <- seasaggs()
+  
+  req(yrtr)
+  
   # title
   dts <- as.Date(dytr, origin = as.Date("2017-12-31"))
   strt <- paste(month(dts[1], label = T, abbr = T), day(dts[1]))
   ends <- paste(month(dts[2], label = T, abbr = T), day(dts[2]))
   ttl <- paste0('Fitted averages with 95% confidence intervals: ', strt, '-',  ends)
+
+  # subtitle
+  yrcoef <- mixmet$coefficients['yr'] %>% round(., 2)
+  pval <- coefficients(summary(mixmet)) %>% data.frame %>% .[2, 4] %>% p_ast
+  subttl <- paste0('Trend from ', yrtr[1], ' to ', yrtr[2], ': slope ', yrcoef, ', ', pval)
   
-  # aggregated data
-  toplo <- extractPeriodAverages(modin, rawval, dytr[1], dytr[2])
+  toplo1 <- seasaggs
+  toplo2 <- data.frame(
+    yr = seq(yrtr[1], yrtr[2], length = 50)
+    ) %>% 
+    mutate( 
+      predicted = predict(mixmet, newdata = data.frame(yr = yr)), 
+      se = predict(mixmet, newdata = data.frame(yr = yr), se = T)[, 2]
+    )
   
   # plot output
-  p <- ggplot(data = toplo, aes(x = yr, y = predicted)) + 
+  p <- ggplot(data = toplo1, aes(x = yr, y = predicted)) + 
     geom_point(colour = 'deepskyblue3') +
     geom_errorbar(aes(ymin = predicted - (1.96 * se), ymax = predicted + (1.96 * se)), colour = 'deepskyblue3') +
+    geom_ribbon(data = toplo2, aes(ymin = predicted - (1.96 * se), ymax = predicted + (1.96 * se)), fill = 'pink', alpha = 0.4) +
+    geom_line(data = toplo2, color = 'pink') +
     ylab('DO (mg/L)') +
     theme_bw(base_family = 'serif', base_size = 16) + 
     theme(
       axis.title.x = element_blank()
     ) +
-    ggtitle(ttl)
+    labs(
+      title = ttl, 
+      subtitle = subttl
+    )
   
   return(p)
   
