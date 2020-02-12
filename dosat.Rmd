@@ -448,7 +448,7 @@ renderPlot({
 ```{r}
 column(12, 
   column(6,
-    sliderInput('dytr', 'Select seasonal trend aggregations (doy):', min = 1, max = 365, value = c(21, 355))
+    sliderInput('dytr', 'Select day-of-year range to define seasons:', min = 1, max = 365, value = c(21, 355))
   ),
   column(6,
     renderUI({
@@ -456,7 +456,7 @@ column(12,
       # unique years x 2/3
       yrs <- mods()$data[[1]] %>% pull(yr) %>% unique
 
-      sliderInput('yrtr', 'Select window to test:', min = min(yrs), max = max(yrs), value = c(2010, 2017), sep = "")
+      sliderInput('yrtr', 'Select years for across-year trend estimate:', min = min(yrs), max = max(yrs), value = c(2010, 2017), sep = "")
       
     })
   )
