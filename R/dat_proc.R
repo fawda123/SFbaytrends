@@ -4,7 +4,7 @@
 library(tidyverse)
 library(lubridate)
 library(sf)
-library(mgcv)
+library(wqtrends)
 
 ######
 # wq data
@@ -90,108 +90,31 @@ save(locs, file = 'data/locs.RData', compress = 'xz')
 
 data(datprc)
 
-# smooths to evaluate
-frms <- c(
-  "dec_time + s(doy, bs = 'cc')",  
-  "dec_time + s(dec_time) + s(doy, bs = 'cc')",
-  "dec_time + s(dec_time) + s(doy, bs = 'cc') + ti(dec_time, doy, bs = c('tp', 'cc'))",
-  "dec_time + s(dec_time) + s(doy, bs = 'cc')"
-) %>% 
-  as.list
-
-# enframe frms for combine with tomod
-frms <- frms %>% 
-  enframe('modi', 'frm') %>% 
-  unnest(frm)
-
 # data to model, same as datprc, params in wide format, nested by station
 # crossed with frms
 tomod <- datprc %>% 
   filter(param %in% c('chl', 'docalc', 'dosat', 'gpp')) %>% # add parameters here
   group_by(station, param) %>% 
   nest %>% 
-  crossing(frms) %>% 
+  crossing(model = c('gam0', 'gam1', 'gam2', 'gam6')) %>% 
   mutate(
-    modi = as.list(modi), 
-    param = ifelse(param %in% 'chl', 'log10(chl)', param),
-    param = ifelse(param %in% 'gpp', 'log10(gpp)', param),
-    frm = ifelse(param %in% c('log10(gpp)', 'log10(chl)'), paste0('log10(value) ~ ', frm), paste0('value ~ ', frm)),
-    frm = as.list(frm)
+    trans = case_when(
+      param %in% c('chl', 'gpp') ~ 'boxcox', 
+      T ~ 'ident'
+    )
   )
 
 # create models for every station, gam model eval
 modssta <- tomod %>%
   mutate(
-    kyear = purrr::pmap(list(param, modi, data), function(param, modi, data){
+    modi = purrr::pmap(list(station, param, model, trans, data), function(station, param, model, trans, data){
       
-      out <- NA
-      
-      # insert upper gamk1 rule for gam1
-      if(modi %in% c(2, 3)){
-  
-        # get upper bounds of knots
-        out <- data$yr %>%
-          unique %>%
-          length 
-        out <- round(out * (2/3), 0)
-        out <- pmax(10, out)
-        
-      }
-      
-      # insert upper gamk1* rule for gamk1*
-      if(modi %in% 4){
-        
-        # get upper bounds of knots
-        out <- 12 * length(unique(data$yr))
-        
-        # gpp have missing data in some months, so decrease upper k boundary
-        if(param == 'log10(gpp)')
-          out <- round(0.9 * nrow(data))
-        
-      }
-      
-      return(out)
-      
-    }),
-    modv = purrr::pmap(list(station, param, data, modi, frm, kyear), function(station, param, data, modi, frm, kyear){
-      
-      cat(station, param, modi, '\t')
-      
-      # insert upper gamk1 rule for gam1
-      if(modi %in% c(2, 3)){
-        
-        p1 <- gsub('(^.*)s\\(dec\\_time\\).*$', '\\1', frm)
-        p3 <-  gsub('^.*s\\(dec\\_time\\)(.*)$', '\\1', frm)
-        p2 <- paste0('s(dec_time, k = ', kyear, ')')
-        frm <- paste0(p1, p2, p3)
-        
-      }
-      
-      # insert upper gamk1* rule for gamk1*
-      if(modi %in% 4){
-        
-        p1 <- gsub('(^.*)s\\(dec\\_time\\).*$', '\\1', frm)
-        p3 <-  gsub('^.*s\\(dec\\_time\\)(.*)$', '\\1', frm)
-        p2 <- paste0('s(dec_time, k = ', kyear, ')')
-        frm <- paste0(p1, p2, p3)
-        
-      }
-      
-      out <- gam(as.formula(frm),
-                 knots = list(doy = c(1, 366)),
-                 data = data,
-                 na.action = na.exclude,
-                 select = T
-      )
-      
+      cat(station, param, model, '\n')
+      out <- anlz_gam(data, mod = model, trans = trans)
       return(out)
       
     })
   )
-
-# rename gam mod types
-modssta <- modssta %>%
-  mutate(modi = factor(modi, levels = c(1, 2, 3, 4), labels = c('gam0', 'gam1', 'gam2', 'gam6')))
 
 # separate parameters into diff files (single is too large for git)
 modssta_chl <- modssta %>% 
