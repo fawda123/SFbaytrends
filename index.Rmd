@@ -17,15 +17,15 @@ tags$head(includeScript("google-analytics.js"))
 
 library(tidyverse)
 library(lubridate)
-library(mgcv)
 library(shiny)
-library(plotly)
+library(wqtrends)
 library(ggmap)
 library(gridExtra)
 library(shinyWidgets)
+library(mgcv)
+library(plotly)
 library(viridis)
 library(mixmeta)
-
 source('R/funcs.R')
 
 data(datprc)
@@ -42,11 +42,7 @@ pbase <- ggmap(map) +
     axis.title.x = element_blank(),
     axis.title.y = element_blank()
   )
-```
 
-## Exploratory plots
-
-```{r}
 # create plots for whole time series, by year, by month
 # all variables, stations
 rawplo <- datprc %>% 
@@ -67,7 +63,7 @@ rawplo <- datprc %>%
     yrs = map(data, function(x){
       
       p <- ggplot(x, aes(x = factor(yr), y = value)) + 
-        geom_boxplot(base_family = 'serif') +
+        geom_boxplot() +
         theme_bw(base_family = 'serif') +
         scale_x_discrete("Year") +
         theme(strip.background = element_blank())
@@ -89,6 +85,88 @@ rawplo <- datprc %>%
   ungroup
 ```
 
+```{r reactives}
+# selected station location and raw time series
+mapselplo <- reactive({
+
+  # inputs
+  station <- input$station
+  typ <- input$typ
+  log <- input$log
+  
+  sel <- rawplo %>% 
+    filter(station %in% !!station) %>% 
+    select(matches(typ)) %>% 
+    .[[1]] %>% 
+    .[[1]]
+  
+  if(log){
+  
+    sel <- sel + scale_y_log10('chl')
+    
+  } else {
+    
+    sel <- sel + scale_y_continuous('chl')
+    
+  }
+  
+  toplo <- sel + 
+    theme(axis.title.x = element_blank())
+  
+  locpt <- locs %>% 
+    filter(Station %in% !!station)
+  
+  p1 <- pbase + 
+    geom_point(data = locpt, aes(x = lon, y = lat), colour = 'tomato1', size = 8) +
+    geom_text(data = locs, aes(x = lon, y = lat, label = Station))
+
+  out <- grid.arrange(p1, toplo, widths = c(0.3, 0.7), ncol = 2)
+  
+  return(out)
+  
+})
+
+# models for selected station
+mods <- reactive({
+  
+  # inputs
+  station <- input$station
+  
+  out <- modssta_chl %>% filter(station %in% !!station)
+  browser()
+  return(out)
+  
+})
+
+# smoother stats of GAMs for selected station
+modstabsmth <- reactive({
+  
+  # inputs
+  mods <- mods()
+  
+  out <- anlz_smooth(mods)
+  
+  return(out)
+  
+})
+
+# summary stats of GAMs, model fit/perf
+modstabfit <- reactive({
+  
+  # input 
+  mods <- mods()
+  
+  out <- anlz_fit(mods)
+  
+  return(out)
+  
+})
+```
+
+
+## Exploratory plots
+
+
 The following plots show the raw data for all monitoring stations and parameters in South Bay, 1990 - 2017.  Select the parameter, plot type (total time series, by year, or by month), and variable transformation.  The year and month plots are aggregated boxplots of all observations at a station for each selected time period.  The variable transformation can be used to show the observations in arithmetic or logarithmic space.
 
 ```{r, echo = F}
@@ -99,48 +177,9 @@ column(4, selectInput("log", "Log-space:", c(T, F)))
 ```
 
 ```{r}
-# get the plot
-toplo <- reactive({
-
-  sel <- rawplo %>% 
-    filter(station %in% input$station) %>% 
-    select(matches(input$typ)) %>% 
-    .[[1]] %>% 
-    .[[1]]
-  
-  if(input$log){
-  
-    sel <- sel + scale_y_log10('chl')
-    
-  } else {
-    
-    sel <- sel + scale_y_continuous('chl')
-    
-  }
-  
-  return(sel)
-  
-})
-
 # make the plot
-renderPlot({
-  
-  # inputs
-  station <- input$station
-  toplo <- toplo() + 
-    theme(axis.title.x = element_blank())
-  
-  locpt <- locs %>% 
-    filter(Station %in% station)
-  
-  p1 <- pbase + 
-    geom_point(data = locpt, aes(x = lon, y = lat), colour = 'tomato1', size = 8) +
-    geom_text(data = locs, aes(x = lon, y = lat, label = Station))
-
-  grid.arrange(p1, toplo, widths = c(0.3, 0.7), ncol = 2)
-  
-}, height = 300, width = 900)
-
+output$mapselplo <- renderPlot(mapselplo(), height = 300, width = 900)
+plotOutput('mapselplo')
 ```
 
 ## GAMs of log-chlorophyll with annual, seasonal trends
@@ -166,33 +205,10 @@ The first table shows the individual effects of the modelled components of each 
 The two plots show the predicted trends from each of the four models.  The first plot shows estimed chlorophyll by day of year with separate lines for each year.  The second plot show predictions for the four models across the entire time series. 
 
 ```{r}
-mods <- reactive({
-  modssta_chl %>% filter(station %in% input$station)
-})
-
-# smoother stats of GAMs
-renderTable({
-  map(mods()$modv, ~ summary(.x)$s.table %>% data.frame %>% rownames_to_column('smoother')) %>% 
-    enframe %>% 
-    rename(model = name) %>% 
-    mutate(model = factor(model, levels = c(1, 2, 3, 4), labels = c('gam0', 'gam1', 'gam2', 'gam6'))) %>% 
-    unnest(value)
-})
-
-# summary stats of GAMs, model fit/perf
-renderTable({
-  map(mods()$modv, ~ data.frame(
-      AIC = AIC(.x), 
-      GCV = .x$gcv.ubre,
-      R2 = summary(.x)$r.sq)) %>% 
-    enframe %>% 
-    rename(model = name) %>% 
-    mutate(
-      model = factor(model, levels = c(1, 2, 3, 4), labels = c('gam0', 'gam1', 'gam2', 'gam6')),
-      k = as.integer(mods()$kyear)
-      ) %>% 
-    unnest(value)
-})
+output$modstabsmth <- renderTable(modstabsmth())
+output$modstabfit <- renderTable(modstabfit())
+tableOutput('modstabsmth')
+tableOutput('modstabfit')
 ```
 
 ```{r}
@@ -613,32 +629,6 @@ renderPlot({
       ) 
   p
 })
-```
-
-```{r, eval = F}
-renderPlot({
-
-  toplo <- prdplost() %>% 
-    mutate(day = day(date)) %>% 
-    mutate(mo = month(date, label = T))
-
-  # plot
-  p <- ggplot(toplo, aes(x = day)) + 
-    # geom_point(data = rawval(), aes(y = log10(value)), size = 0.5) +
-    geom_line(aes(y = value, group = yr, colour = yr), size = 1, alpha = 0.7) + 
-    scale_colour_viridis_c() +
-    theme_bw(base_family = 'serif', base_size = 16) + 
-    facet_wrap(~mo, ncol = 4) + 
-    theme_bw(base_family = 'serif', base_size = 16) + 
-    theme(
-      legend.position = 'top', 
-      legend.title = element_blank()
-      ) + 
-    guides(colour = guide_colourbar(barheight = 1, barwidth = 20)) + 
-    ylab('log10(chl)')
-  p
-  
-}, height = 650)
 ```
 
 ```{r, out.width = "100%"}
