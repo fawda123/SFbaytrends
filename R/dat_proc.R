@@ -116,20 +116,29 @@ modssta <- tomod %>%
     })
   )
 
-# separate parameters into diff files (single is too large for git)
-modssta_chl <- modssta %>% 
-  filter(param %in% 'log10(chl)')
-modssta_docalc <- modssta %>% 
-  filter(param %in% 'docalc')
-modssta_dosat <- modssta %>% 
-  filter(param %in% 'dosat')
-modssta_gpp <- modssta %>% 
-  filter(param %in% 'log10(gpp)')
+# separate models into diff files by parameter and stations (single is too large for git)
+tosv <- modssta %>% 
+  select(station, param) %>% 
+  unique
 
-save(modssta_chl, file = 'data/modssta_chl.RData', compress = 'xz')
-save(modssta_docalc, file = 'data/modssta_docalc.RData', compress = 'xz')
-save(modssta_dosat, file = 'data/modssta_dosat.RData', compress = 'xz')
-save(modssta_gpp, file = 'data/modssta_gpp.RData', compress = 'xz')
+for(i in 1:nrow(tosv)){
+  
+  cat(i, 'of', nrow(tosv), '\n')
+  
+  sta <- tosv[[i, 'station']]
+  param <- tosv[[i, 'param']]
+  
+  fl <- modssta %>% 
+    filter(station %in% !!sta) %>% 
+    filter(param %in% !!param)
+  
+  flnm <- paste0('mods_', param, sta)
+  
+  assign(flnm, fl)
+  
+  save(list = flnm, file = paste0('data/', flnm, '.RData'), compress = 'xz')
+  
+}
 
 ######
 # check knots and fit
