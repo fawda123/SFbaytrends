@@ -20,20 +20,23 @@ library(lubridate)
 library(shiny)
 library(wqtrends)
 library(ggmap)
-library(gridExtra)
-library(shinyWidgets)
 library(mgcv)
 library(plotly)
-library(viridis)
-library(mixmeta)
+library(gridExtra)
+library(shinyWidgets)
 source('R/funcs.R')
 
 data(datprc)
-data(modssta_chl)
 data(locs)
 data(map)
 
 yrs <- seq(1990, 2017)
+params <- list(
+  'Chlorophyll-a (ug/L)' = 'chl', 
+  'GPP (mg C m-2 d-1)' = 'gpp', 
+  'DO (mg/L)' = 'docalc', 
+  'DO (% sat)' = 'dosat'
+)
 
 # ext <- make_bbox(locs$lon, locs$lat, f = 0.2)
 # map <- get_stamenmap(ext,  zoom = 11, maptype = "toner-lite", where = getwd())
@@ -43,47 +46,6 @@ pbase <- ggmap(map) +
     axis.title.x = element_blank(),
     axis.title.y = element_blank()
   )
-
-# create plots for whole time series, by year, by month
-# all variables, stations
-rawplo <- datprc %>% 
-  filter(param %in% 'chl') %>% 
-  group_by(station) %>% 
-  nest %>% 
-  mutate(
-    tot = map(data, function(x){
-      
-      p <- ggplot(x, aes(x = dec_time, y = value)) + 
-        geom_line() +
-        theme_bw(base_family = 'serif') +
-        theme(strip.background = element_blank())
-      
-      return(p)
-      
-    }),
-    yrs = map(data, function(x){
-      
-      p <- ggplot(x, aes(x = factor(yr), y = value)) + 
-        geom_boxplot() +
-        theme_bw(base_family = 'serif') +
-        scale_x_discrete("Year") +
-        theme(strip.background = element_blank())
-      
-      return(p)
-      
-    }), 
-    mos = map(data, function(x){
-      
-      p <- ggplot(x, aes(x = mo, y = value)) + 
-        geom_boxplot() +
-        theme_bw() +
-        theme(strip.background = element_blank())
-      
-      return(p)
-      
-    })
-  ) %>% 
-  ungroup
 ```
 
 ```{r reactives}
@@ -92,36 +54,64 @@ mapselplo <- reactive({
 
   # inputs
   station <- input$station
+  parameter <- input$parameter
   typ <- input$typ
+  ylb <- ylb()
 
+  req(ylb)
+  
   locpt <- locs %>% 
     filter(Station %in% !!station)
   
+  # map
   p1 <- pbase + 
     geom_point(data = locpt, aes(x = lon, y = lat), colour = 'tomato1', size = 8) +
     geom_text(data = locs, aes(x = lon, y = lat, label = Station))
 
-  p2 <- rawplo %>% 
+  # time series raw
+  toplo <- datprc %>% 
     filter(station %in% !!station) %>% 
-    select(matches(typ)) %>% 
-    .[[1]] %>% 
-    .[[1]] + 
-    scale_y_log10('Chlorophyll-a (ug/L)') + 
+    filter(param %in% !!parameter)
+  
+  if(typ == 'tot')
+     p2 <- ggplot(toplo, aes(x = dec_time, y = value)) + 
+        geom_line() 
+  if(typ == 'yrs')
+     p2 <- ggplot(toplo, aes(x = factor(yr), y = value)) + 
+        geom_boxplot()
+  if(typ == 'mos')
+     p2 <- ggplot(toplo, aes(x = mo, y = value)) + 
+        geom_boxplot()
+      
+  # create plots for whole time series, by year, by month
+  p2 <- p2 +
+    theme_bw() +
     theme(axis.title.x = element_blank())
+  
+  if(parameter %in% c('gpp', 'chl'))
+    p2 <- p2 + 
+      scale_y_log10(ylb)
+  if(parameter %in% c('dosat', 'docalc'))
+    p2 <- p2 + 
+      scale_y_continuous(ylb)
   
   out <- grid.arrange(p1, p2, widths = c(0.3, 0.7), ncol = 2)
   
   return(out)
   
-})
-
+})  
+  
 # models for selected station
 mods <- reactive({
   
   # inputs
+  parameter <- input$parameter
   station <- input$station
   
-  out <- modssta_chl %>% filter(station %in% !!station) %>% 
+  fl <- paste0('mods_', parameter, station)
+  load(file = paste0('data/', fl, '.RData'))
+  
+  out <- get(fl) %>% 
     select(-station, -param) %>% 
     deframe
 
@@ -137,6 +127,35 @@ modsind <- reactive({
   mod <- input$mod
   
   out <- mods[mod]
+  
+  return(out)
+  
+})
+
+# y axis label
+ylb <- reactive({
+  
+  # input
+  parameter <- input$parameter
+  
+  out <- params %in% parameter %>% which %>% params[.] %>% names
+  
+  return(out)
+
+})
+
+# text labels for parameter selection
+txtlb <- reactive({
+  
+  # input
+  parameter <- input$parameter
+  
+  out <- params %in% parameter %>% which %>% params[.] %>% names
+  out <- gsub('^(.*)\\s.*$', '\\1', out)
+  out <- case_when(
+    out %in% 'Chlorophyll-a' ~ tolower(out), 
+    T ~ out
+  )
   
   return(out)
   
@@ -171,8 +190,9 @@ prddoy <- reactive({
   
   # inputs
   mods <- mods()
+  ylb <- ylb()
   
-  out <- show_prddoy(mods = mods, ylab = 'Chlorophyll-a (ug/L)')
+  out <- show_prddoy(mods = mods, ylab = ylb)
   
   return(out)
   
@@ -183,8 +203,9 @@ prdseries <- reactive({
   
   # inputs
   mods <- mods()
+  ylb <- ylb()
   
-  out <- show_prdseries(mods = mods, ylab = 'Chlorophyll-a (ug/L)')
+  out <- show_prdseries(mods = mods, ylab = ylb)
   
   return(out)
   
@@ -195,8 +216,9 @@ prdseason <- reactive({
   
   # inputs
   mods <- mods()
+  ylb <- ylb()
   
-  out <- show_prdseason(mods = mods, ylab = 'Chlorophyll-a (ug/L)')
+  out <- show_prdseason(mods = mods, ylab = ylb)
 
   return(out)
   
@@ -207,8 +229,9 @@ prd3d <- reactive({
   
   # inputs
   modsind <- modsind()
+  ylb <- ylb()
   
-  out <- show_prd3d(mods = modsind, ylab = 'Chlorophyll-a (ug/L)')
+  out <- show_prd3d(mods = modsind, ylab = ylb)
   
   return(out)
   
@@ -264,8 +287,12 @@ perchg <- reactive({
   yrbs <- as.numeric(input$yrbs)
   yrts <- as.numeric(input$yrts)
   modsind <- modsind()
+  ylb <- ylb()
   
-  out <- show_perchg(mods = modsind, baseyr = yrbs, testyr = yrts, ylab = 'Chlorophyll-a (ug/L)')
+  req(yrbs)
+  req(yrts)
+  
+  out <- show_perchg(mods = modsind, baseyr = yrbs, testyr = yrts, ylab = ylb)
   
   return(out)
   
@@ -278,9 +305,12 @@ avgseason <- reactive({
   dytr <- input$dytr
   yrtr <- input$yrtr
   modsind <- modsind()
+  ylb <- ylb()
+  
+  req(yrtr)
   
   out <- show_avgseason(mods = modsind, doystr = dytr[1] , doyend = dytr[2], yrstr = yrtr[1], yrend = yrtr[2], 
-                        ylab = 'Chlorophyll-a (ug/L)')
+                        ylab = ylb)
   
   return(out)
   
@@ -294,7 +324,7 @@ The following plots show the raw data for all monitoring stations and parameters
 ```{r, echo = F}
 # selection widgets
 column(4, selectInput("station", "Choose station:", sort(unique(datprc$station))))
-column(4, selectInput("typ", "Choose plot type:", c('tot', 'yrs', 'mos')))
+column(4, selectInput("parameter", "Choose parameter:", choices = params))
 ```
 
 ```{r}
@@ -303,27 +333,32 @@ output$mapselplo <- renderPlot(mapselplo(), height = 300, width = 900)
 plotOutput('mapselplo')
 ```
 
-## GAMs of log-chlorophyll with annual, seasonal trends {.tabset}
+```{r, echo = F}
+column(10, NULL)
+column(2, selectInput("typ", "Choose plot type:", c('tot', 'yrs', 'mos')))
+```
 
-Generalized additive models (GAMs) were developed to describe trends in chlorophyll-a at each of the monitoring stations in South Bay.  The station and selected model can be chosen from the drop down menus.  Four types of GAMs were developed for the time series at each station to model chlorophyll as a function of time, where time is measured as an annual and seasonal effect.  The four models descibe the time components differently and represent increasing levels of complexity to describe the chlorophyll trend:
+## GAMs of `r renderText(txtlb())` with annual, seasonal trends {.tabset}
 
-* `gam0`: chl ~ year + s(doy)
+Generalized additive models (GAMs) were developed to describe trends in `r renderText(txtlb())` at each of the monitoring stations in South Bay.  The station and selected model can be chosen from the drop down menus.  Four types of GAMs were developed for the time series at each station to model `r renderText(txtlb())` as a function of time, where time is measured as an annual and seasonal effect.  The four models descibe the time components differently and represent increasing levels of complexity to describe the `r renderText(txtlb())` trend:
 
-* `gam1`: chl ~ year + s(doy) + s(year)
+* `gam0`: `r renderText(input$parameter)` ~ year + s(doy)
 
-* `gam2`: chl ~ year + s(doy) + s(year) + ti(doy, year)
+* `gam1`: `r renderText(input$parameter)` ~ year + s(doy) + s(year)
 
-* `gam6`: chl ~ year + s(doy) + s(year, k = *large*)
+* `gam2`: `r renderText(input$parameter)` ~ year + s(doy) + s(year) + ti(doy, year)
+
+* `gam6`: `r renderText(input$parameter)` ~ year + s(doy) + s(year, k = *large*)
 
 For all models, `year` is measured as a continuous numeric variable for the annual effect (e.g., January 1st, 2000 is 2000.0, July 1st, 2000 is 2000.5, etc.) and `doy` is the day of year as a numeric value from 1 to 366.  All models include `year` as a linear effect.  The functions `s()` model either `year` or `doy` as a smoothed, non-linear variable and `ti()` models the interaction between the two.  The fourth model, `gam6`, is the same as `gam1` with the exception that the optimal amount of smoothing on `year` is not constrained by increasing the theoretical upper limit on the number of knots for `k`.  The upper limit of `k` was chosen as 12 times the number of years of data at each station (~300).
 
 ### All models
 
-__Select the station with the drop down menu for the summary of all four GAM chlorophyll models.__  
+__Select the station with the drop down menu for the summary of all four GAM `r renderText(txtlb())` models.__  
 
 The first table shows the individual effects of the modelled components of each model as the estimated degrees of freedom (`edf`), the reference degrees of freedom (`Ref.df`), the test statistic (`F`), and significance of the component (`p-value`).  The significance of the component is in part based on the difference between `edf` and `Ref.df`.  The second table shows the overall summary of each model as Akaike Information Criterion (`AIC`), the generalized cross-validation score (`GCV`), and the `R2` values.  Lower values for `AIC` and `GCV` and higher values for `R2` indicate improved model fit. The `k` column shows the upper limit for the number of knots on the `year` term, when appropriate (i.e., not gam0). 
 
-The three plots show the predicted trends from each of the four models.  The first plot shows estimed chlorophyll by day of year with separate lines for each year.  The second plot show predictions for the four models across the entire time series. The third plot show the predicted trends with separate lines for each month across the time series.
+The three plots show the predicted trends from each of the four models.  The first plot shows estimated `r renderText(txtlb())` by day of year with separate lines for each year.  The second plot show predictions for the four models across the entire time series. The third plot show the predicted trends with separate lines for each month across the time series.
 
 ```{r}
 output$modstabsmth <- renderTable(modstabsmth())
@@ -359,10 +394,10 @@ __Selected station:  `r renderText({input$station})`__
 
 The following provides additional information for one of the four models for the selected station.  __Use the drop down menu to select a specific model.__  
 
-The first tab shows a three-dimensional fit of the estimated trends across year and day of year with the z-axis showing estimated chlorophyll.  The second plot shows a table of summary statistics for the selected model (repeated from above) and plot diagnostics of the model fit.  The third tab shows the predicted trends across the time series (and options for trend assessment) and the predicted trends as seasonal aggregations with 95% confidence intervals within each year.
+The first tab shows a three-dimensional fit of the estimated trends across year and day of year with the z-axis showing estimated `r renderText(txtlb())`.  The second plot shows a table of summary statistics for the selected model (repeated from above) and plot diagnostics of the model fit.  The third tab shows the predicted trends across the time series (and options for trend assessment) and the predicted trends as seasonal aggregations with 95% confidence intervals within each year.
 
 ```{r, echo = F}
-selectInput('mod', "Select a model:", choices = unique(modssta_chl$model))
+selectInput('mod', "Select a model:", choices = c('gam0', 'gam1', 'gam2', 'gam6'), selected = 'gam2')
 ```
 
 #### 3d
@@ -389,12 +424,24 @@ plotOutput('gamchk', height="550px")
 #### Trends 
 
 ```{r}
-column(4,
-         pickerInput('yrbs', 'Select base years:', choices = yrs, selected = yrs[c(1,2)], multiple = T)
 
+column(4,
+       renderUI({
+
+         req(modsind())
+         yrs <- modsind()[[1]]$model %>% pull(dec_time) %>% date_decimal(.) %>% year %>% unique
+         pickerInput('yrbs', 'Select base years:', choices = yrs, selected = yrs[c(1,2)], multiple = T)
+         
+         })
 )
 column(4,
+       renderUI({
+         
+         req(modsind())
+         yrs <- modsind()[[1]]$model %>% pull(dec_time) %>% date_decimal(.) %>% year %>% unique
          pickerInput('yrts', 'Select test years:', choices = yrs, selected = rev(yrs)[c(1,2)], multiple = T)
+         
+         })
 )
 ```
 
@@ -409,7 +456,13 @@ column(12,
     sliderInput('dytr', 'Select day-of-year range to define seasons:', min = 1, max = 365, value = c(21, 355))
   ),
   column(6,
-    sliderInput('yrtr', 'Select years for across-year trend estimate:', min = min(yrs), max = max(yrs), value = c(2010, 2017), sep = "", step = 1)
+    renderUI({
+      
+      req(modsind())
+      yrs <- modsind()[[1]]$model %>% pull(dec_time) %>% date_decimal(.) %>% year %>% unique
+      sliderInput('yrtr', 'Select years for across-year trend estimate:', min = min(yrs), max = max(yrs), value = c(2010, 2017), sep = "", step = 1)
+      
+    })
   )
 )
 ```
