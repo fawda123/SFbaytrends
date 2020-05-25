@@ -19,6 +19,7 @@ library(tidyverse)
 library(lubridate)
 library(shiny)
 library(wqtrends)
+# devtools::load_all('../wqtrends')
 library(ggmap)
 library(mgcv)
 library(plotly)
@@ -308,8 +309,32 @@ avgseason <- reactive({
   ylb <- ylb()
   
   req(yrtr)
+
+  out <- try({show_avgseason(mods = modsind, doystr = dytr[1] , doyend = dytr[2], yrstr = yrtr[1], yrend = yrtr[2], 
+                        ylab = ylb)})
   
-  out <- show_avgseason(mods = modsind, doystr = dytr[1] , doyend = dytr[2], yrstr = yrtr[1], yrend = yrtr[2], 
+  validate(
+    need(inherits(out, 'ggplot'), 'Pick different year range')
+  )
+  
+  return(out)
+  
+})
+
+# seasonal trends
+trndseason <- reactive({
+  
+  # inputs
+  dytr <- input$dytr
+  yrtr <- input$yrtr
+  modsind <- modsind()
+  ylb <- ylb()
+  wntr <- input$wntr
+  wnty <- input$wnty
+  
+  req(yrtr)
+  
+  out <- show_trndseason(mods = modsind, doystr = dytr[1] , doyend = dytr[2], win = wntr, justify = wnty, 
                         ylab = ylb)
   
   return(out)
@@ -453,7 +478,7 @@ plotOutput('perchg')
 ```{r}
 column(12,
   column(6,
-    sliderInput('dytr', 'Select day-of-year range to define seasons:', min = 1, max = 365, value = c(21, 355))
+    sliderInput('dytr', 'Select day-of-year range to define seasons:', min = 1, max = 365, value = c(213, 304))
   ),
   column(6,
     renderUI({
@@ -465,10 +490,28 @@ column(12,
     })
   )
 )
+column(12, 
+  column(6, 
+    sliderInput('wntr', 'Select window size:', min = 2, max = 20, value = 5)       
+  ), 
+  column(6, 
+    selectInput('wnty', 'Select window type:', choices = c('left', 'center', 'right'))     
+  )
+)
 ```
 
 ```{r}
 output$avgseason <- renderPlot(avgseason(), height = 320)
 plotOutput('avgseason')
+```
+
+<br></br>
+<br></br>
+<br></br>
+
+
+```{r}
+output$trndseason <- renderPlot(trndseason(), height = 370)
+plotOutput('trndseason')
 ```
 
