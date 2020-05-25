@@ -328,14 +328,13 @@ trndseason <- reactive({
   dytr <- input$dytr
   yrtr <- input$yrtr
   modsind <- modsind()
-  ylb <- ylb()
   wntr <- input$wntr
   wnty <- input$wnty
   
   req(yrtr)
   
   out <- show_trndseason(mods = modsind, doystr = dytr[1] , doyend = dytr[2], win = wntr, justify = wnty, 
-                        ylab = ylb)
+                        ylab = 'Change per year')
   
   return(out)
   
