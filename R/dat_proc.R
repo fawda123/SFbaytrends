@@ -71,6 +71,8 @@ datprc <- datprc %>%
  bind_rows(dodat, gppdat) %>% 
  arrange(date, station, param)
 
+# rawdat <- datprc
+# save(rawdat, file = '../wqtrends/data/rawdat.RData', compress = 'xz')
 save(datprc, file = 'data/datprc.RData', compress = 'xz')
 
 ######
@@ -83,6 +85,7 @@ data(datprc)
 locs <- read.csv('ignore/usgs_station_lat_lon.csv') %>% 
   filter(Station %in% datprc$station)
 
+save(locs, file = '../wqtrends-manu/data/locs.RData', compress = 'xz')
 save(locs, file = 'data/locs.RData', compress = 'xz')
 
 ######
@@ -139,6 +142,11 @@ for(i in 1:nrow(tosv)){
   save(list = flnm, file = paste0('data/', flnm, '.RData'), compress = 'xz')
   
 }
+
+# copy chlorophyll mods to manu repo
+fls <- list.files('data', pattern = '^mods\\_chl', full.names = T)
+
+file.copy(fls, '../wqtrends-manu/data/')
 
 ######
 # check knots and fit
