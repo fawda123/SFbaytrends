@@ -143,10 +143,10 @@ for(i in 1:nrow(tosv)){
   
 }
 
-# copy chlorophyll mods to manu repo
-fls <- list.files('data', pattern = '^mods\\_chl', full.names = T)
-
-file.copy(fls, '../wqtrends-manu/data/')
+# # copy chlorophyll mods to manu repo
+# fls <- list.files('data', pattern = '^mods\\_chl', full.names = T)
+# 
+# file.copy(fls, '../wqtrends-manu/data/')
 
 ######
 # check knots and fit
