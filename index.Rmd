@@ -113,7 +113,7 @@ mods <- reactive({
   load(file = paste0('data/', fl, '.RData'))
   
   out <- get(fl) %>% 
-    select(-station, -param) %>% 
+    select(-station, -param, -data, -trans) %>% 
     deframe
 
   return(out)
