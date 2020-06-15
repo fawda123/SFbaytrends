@@ -1,13 +1,9 @@
-###### 
-# data process
-
 library(tidyverse)
 library(lubridate)
 library(sf)
 library(wqtrends)
 
-######
-# wq data
+# format raw wq data for use with wqtrends --------------------------------
 
 dat <- read.csv('raw/df_18_36.csv', stringsAsFactors = F)
 
@@ -75,8 +71,7 @@ datprc <- datprc %>%
 # save(rawdat, file = '../wqtrends/data/rawdat.RData', compress = 'xz')
 save(datprc, file = 'data/datprc.RData', compress = 'xz')
 
-######
-# station lat/lon
+# station lat/lon as separate file ----------------------------------------
 
 prj <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
 
@@ -88,8 +83,7 @@ locs <- read.csv('ignore/usgs_station_lat_lon.csv') %>%
 save(locs, file = '../wqtrends-manu/data/locs.RData', compress = 'xz')
 save(locs, file = 'data/locs.RData', compress = 'xz')
 
-######
-# get GAMs for each station, chl, docalc, dosat, gam0, gam1, gam2, gam6 from baytrends
+# save separate rdata model files for each station, parameter -------------
 
 data(datprc)
 
@@ -148,8 +142,63 @@ for(i in 1:nrow(tosv)){
 # 
 # file.copy(fls, '../wqtrends-manu/data/')
 
-######
-# check knots and fit
+# same as above but log chl -----------------------------------------------
+
+data(datprc)
+
+# data to model, same as datprc, params in wide format, nested by station
+# crossed with frms
+tomod <- datprc %>% 
+  filter(param %in% c('chl')) %>% # add parameters here
+  group_by(station, param) %>% 
+  nest %>% 
+  crossing(model = c('gam0', 'gam1', 'gam2', 'gam6')) %>% 
+  mutate(
+    trans = 'log10'
+  )
+
+# create models for every station, gam model eval
+modssta <- tomod %>%
+  mutate(
+    modi = purrr::pmap(list(station, param, model, trans, data), function(station, param, model, trans, data){
+      
+      cat(station, param, model, '\n')
+      out <- anlz_gam(data, mod = model, trans = trans)
+      return(out)
+      
+    })
+  )
+
+# separate models into diff files by parameter and stations (single is too large for git)
+tosv <- modssta %>% 
+  select(station, param) %>% 
+  unique
+
+for(i in 1:nrow(tosv)){
+  
+  cat(i, 'of', nrow(tosv), '\n')
+  
+  sta <- tosv[[i, 'station']]
+  param <- tosv[[i, 'param']]
+  
+  fl <- modssta %>% 
+    filter(station %in% !!sta) %>% 
+    filter(param %in% !!param)
+  
+  flnm <- paste0('modslog_', param, sta)
+  
+  assign(flnm, fl)
+  
+  save(list = flnm, file = paste0('data/', flnm, '.RData'), compress = 'xz')
+  
+}
+
+# # copy chlorophyll mods to manu repo
+# fls <- list.files('data', pattern = '^modslog\\_chl', full.names = T)
+# 
+# file.copy(fls, '../wqtrends-manu/data/')
+
+# checking fit with changing knots ----------------------------------------
 
 data(datprc)
 
