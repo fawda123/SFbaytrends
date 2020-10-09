@@ -31,12 +31,11 @@ data(datprc)
 data(locs)
 data(map)
 
-yrs <- seq(1990, 2017)
+yrs <- seq(1990, 2020)
 params <- list(
   'Chlorophyll-a (ug/L)' = 'chl', 
   'GPP (mg C m-2 d-1)' = 'gpp', 
-  'DO (mg/L)' = 'docalc', 
-  'DO (% sat)' = 'dosat'
+  'DO (mg/L)' = 'docalc'
 )
 
 # ext <- make_bbox(locs$lon, locs$lat, f = 0.2)
@@ -92,7 +91,7 @@ mapselplo <- reactive({
   if(parameter %in% c('gpp', 'chl'))
     p2 <- p2 + 
       scale_y_log10(ylb)
-  if(parameter %in% c('dosat', 'docalc'))
+  if(parameter %in% c('docalc'))
     p2 <- p2 + 
       scale_y_continuous(ylb)
   
@@ -343,7 +342,7 @@ trndseason <- reactive({
 
 ## Exploratory plots
 
-The following plots show the raw data for all monitoring stations and parameters in South Bay, 1990 - 2017.  Select the parameter, plot type (total time series, by year, or by month), and variable transformation.  The year and month plots are aggregated boxplots of all observations at a station for each selected time period.  The variable transformation can be used to show the observations in arithmetic or logarithmic space.
+The following plots show the raw data for all monitoring stations and parameters in South Bay, 1990 - 2020.  Select the parameter, plot type (total time series, by year, or by month), and variable transformation.  The year and month plots are aggregated boxplots of all observations at a station for each selected time period.  The variable transformation can be used to show the observations in arithmetic or logarithmic space.
 
 ```{r, echo = F}
 # selection widgets
@@ -484,7 +483,7 @@ column(12,
       
       req(modsind())
       yrs <- modsind()[[1]]$model %>% pull(dec_time) %>% date_decimal(.) %>% year %>% unique
-      sliderInput('yrtr', 'Select years for across-year trend estimate:', min = min(yrs), max = max(yrs), value = c(2010, 2017), sep = "", step = 1)
+      sliderInput('yrtr', 'Select years for across-year trend estimate:', min = min(yrs), max = max(yrs), value = c(2010, 2020), sep = "", step = 1)
       
     })
   )
