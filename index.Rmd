@@ -88,10 +88,10 @@ mapselplo <- reactive({
     theme_bw() +
     theme(axis.title.x = element_blank())
   
-  if(parameter %in% c('gpp', 'chl'))
+  if(parameter %in% c('chl'))
     p2 <- p2 + 
       scale_y_log10(ylb)
-  if(parameter %in% c('docalc'))
+  if(parameter %in% c('docalc', 'gpp'))
     p2 <- p2 + 
       scale_y_continuous(ylb)
   
@@ -151,7 +151,7 @@ txtlb <- reactive({
   parameter <- input$parameter
   
   out <- params %in% parameter %>% which %>% params[.] %>% names
-  out <- gsub('^(.*)\\s.*$', '\\1', out)
+  out <- gsub('^(.*)\\s\\(.*$', '\\1', out)
   out <- case_when(
     out %in% 'Chlorophyll-a' ~ tolower(out), 
     T ~ out
