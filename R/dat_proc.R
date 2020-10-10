@@ -21,7 +21,8 @@ datprc <- dat %>%
     param = gsub('^c_chl$', 'chl', param), 
     param = gsub('^s$', 'sal', param)
   ) %>% 
-  filter(yr >= 1990 & yr <= 2020)
+  filter(yr >= 1990 & yr <= 2019) %>% 
+  filter(!is.na(value))
 
 # get gpp estimates
 gppdat <- read.csv('raw/sfb_GPP_monthly.csv', stringsAsFactors = F) %>% 
@@ -39,7 +40,7 @@ gppdat <- read.csv('raw/sfb_GPP_monthly.csv', stringsAsFactors = F) %>%
  ) %>% 
  gather('param', 'value', gpp) %>% 
  select(date, station, param, value, doy, dec_time, yr, mo) %>% 
- filter(yr >= 1990 & yr <= 2020) %>% 
+ filter(yr >= 1990 & yr <= 2019) %>% 
  filter(!is.na(value))
 
 # combine new do ests, gpp with datprc
@@ -117,10 +118,10 @@ for(i in 1:nrow(tosv)){
   
 }
 
-# # copy chlorophyll mods to manu repo
-# fls <- list.files('data', pattern = '^mods\\_chl', full.names = T)
-# 
-# file.copy(fls, '../wqtrends-manu/data/')
+# copy chlorophyll mods to manu repo
+fls <- list.files('data', pattern = '^mods\\_chl', full.names = T)
+
+file.copy(fls, '../wqtrends-manu/data/')
 
 # same as above but log chl -----------------------------------------------
 
@@ -173,10 +174,10 @@ for(i in 1:nrow(tosv)){
   
 }
 
-# # copy chlorophyll mods to manu repo
-# fls <- list.files('data', pattern = '^modslog\\_chl', full.names = T)
-# 
-# file.copy(fls, '../wqtrends-manu/data/')
+# copy chlorophyll mods to manu repo
+fls <- list.files('data', pattern = '^modslog\\_chl', full.names = T)
+
+file.copy(fls, '../wqtrends-manu/data/')
 
 # checking fit with changing knots ----------------------------------------
 

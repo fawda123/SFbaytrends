@@ -423,13 +423,6 @@ The first tab shows a three-dimensional fit of the estimated trends across year 
 selectInput('mod', "Select a model:", choices = c('gam0', 'gam1', 'gam2', 'gam6'), selected = 'gam2')
 ```
 
-#### 3d
-
-```{r}
-output$prd3d <- renderPlotly(prd3d())
-plotlyOutput('prd3d')
-```
-
 #### Fit
 
 ```{r}
@@ -513,3 +506,9 @@ output$trndseason <- renderPlot(trndseason(), height = 370)
 plotOutput('trndseason')
 ```
 
+#### 3d
+
+```{r}
+output$prd3d <- renderPlotly(prd3d())
+plotlyOutput('prd3d')
+```
