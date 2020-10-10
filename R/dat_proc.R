@@ -77,7 +77,7 @@ tomod <- datprc %>%
   crossing(model = c('gam0', 'gam1', 'gam2', 'gam6')) %>% 
   mutate(
     trans = case_when(
-      param %in% c('chl', 'gpp') ~ 'boxcox', 
+      param %in% c('chl') ~ 'boxcox', 
       T ~ 'ident'
     )
   )
