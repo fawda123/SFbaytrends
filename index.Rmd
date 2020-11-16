@@ -88,10 +88,10 @@ mapselplo <- reactive({
     theme_bw() +
     theme(axis.title.x = element_blank())
   
-  if(parameter %in% c('chl'))
+  if(parameter %in% c('chl', 'gpp'))
     p2 <- p2 + 
       scale_y_log10(ylb)
-  if(parameter %in% c('docalc', 'gpp'))
+  if(parameter %in% c('docalc'))
     p2 <- p2 + 
       scale_y_continuous(ylb)
   
@@ -300,12 +300,13 @@ trndseason <- reactive({
 
 ## Exploratory plots
 
-The following plots show the raw data for all monitoring stations and parameters in South Bay, 1990 - 2019.  Select the parameter, plot type (total time series, by year, or by month), and variable transformation.  The year and month plots are aggregated boxplots of all observations at a station for each selected time period.  The variable transformation can be used to show the observations in arithmetic or logarithmic space.
+The following plots show the raw data for all monitoring stations and parameters in South Bay, 1990 - 2019.  Select the station, parameter, and plot type (total time series, by year, or by month).  The year and month plots are aggregated boxplots of all observations at a station for each selected time period.
 
 ```{r, echo = F}
 # selection widgets
 column(4, selectInput("station", "Choose station:", sort(unique(datprc$station))))
 column(4, selectInput("parameter", "Choose parameter:", choices = params))
+column(4, selectInput("typ", "Choose plot type:", c('tot', 'yrs', 'mos')))
 ```
 
 ```{r}
@@ -314,18 +315,13 @@ output$mapselplo <- renderPlot(mapselplo(), height = 300, width = 900)
 plotOutput('mapselplo')
 ```
 
-```{r, echo = F}
-column(10, NULL)
-column(2, selectInput("typ", "Choose plot type:", c('tot', 'yrs', 'mos')))
-```
+## GAM results {.tabset}
 
-## GAMs of `r renderText(txtlb())` with annual, seasonal trends {.tabset}
-
-Generalized additive models (GAMs) were developed to describe trends in `r renderText(txtlb())` at each of the monitoring stations in South Bay.  The station can be chosen from the drop down menus.  One GAM was developed for the time series at each station to model `r renderText(txtlb())` as a function of time, where time is measured as a continuous year value.
+Generalized additive models (GAMs) were developed to describe trends at each of the monitoring stations in South Bay.  The station and parameter can be chosen from the drop down menus above.  Each model has the following structure:
 
 * `S`: `r renderText(input$parameter)` ~  s(cont_year, k = *large*)
 
-The `cont_year` variable is measured as a continuous numeric value for the annual effect (e.g., January 1st, 2000 is 2000.0, July 1st, 2000 is 2000.5, etc.). The function `s()` models `year` as a smoothed, non-linear variable.  The `k` value is a theoretical upper limit on the number knots used to fit the smoother for `cont_year`.  The optimal number of knots are determined automatically using generalized cross-validation as implemented with the `mgcv()` function.  Using a sufficiently large number for `k` ensures the model is not underfit to the data. The upper limit of `k` was chosen as 12 times the number of years of data at each station (~360).
+The `cont_year` variable is measured as a continuous numeric value for the time series vector (e.g., January 1st, 2000 is 2000.0, July 1st, 2000 is 2000.5, etc.). The function `s()` models `year` as a smoothed, non-linear variable.  The `k` value is a theoretical upper limit on the number of knots used to fit the smoother for `cont_year`.  The optimal number of knots are determined automatically using generalized cross-validation as implemented with the `mgcv()` function.  Using a sufficiently large number for `k` ensures the model is not underfit to the data. The upper limit of `k` was chosen as 12 times the number of years of data at each station (~360).
 
 __Selected station:  `r renderText({input$station})`, Selected parameter: `r renderText(txtlb())`__
 
@@ -340,7 +336,7 @@ plotOutput('prddoy', height = "400px", width = "900px")
 
 ```{r}
 output$prdseries <- renderPlot(prdseries())
-plotOutput('prdseries', height = "370px")
+plotOutput('prdseries', height = "330px")
 ```
 
 ```{r}
