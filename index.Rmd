@@ -31,7 +31,7 @@ data(datprc)
 data(locs)
 data(map)
 
-yrs <- seq(1990, 2020)
+yrs <- seq(1990, 2019)
 params <- list(
   'Chlorophyll-a (ug/L)' = 'chl', 
   'GPP (mg C m-2 d-1)' = 'gpp', 
@@ -74,7 +74,7 @@ mapselplo <- reactive({
     filter(param %in% !!parameter)
   
   if(typ == 'tot')
-     p2 <- ggplot(toplo, aes(x = dec_time, y = value)) + 
+     p2 <- ggplot(toplo, aes(x = cont_year, y = value)) + 
         geom_line() 
   if(typ == 'yrs')
      p2 <- ggplot(toplo, aes(x = factor(yr), y = value)) + 
@@ -102,7 +102,7 @@ mapselplo <- reactive({
 })  
   
 # models for selected station
-mods <- reactive({
+mod <- reactive({
   
   # inputs
   parameter <- input$parameter
@@ -110,24 +110,12 @@ mods <- reactive({
   
   fl <- paste0('mods_', parameter, station)
   load(file = paste0('data/', fl, '.RData'))
-  
+ 
   out <- get(fl) %>% 
-    select(-station, -param, -data, -trans) %>% 
-    deframe
+    ungroup() %>%
+    pull(modi) %>% 
+    deframe()
 
-  return(out)
-  
-})
-
-# selected individual model
-modsind <- reactive({
-  
-  # inputs
-  mods <- mods()
-  mod <- input$mod
-  
-  out <- mods[mod]
-  
   return(out)
   
 })
@@ -162,24 +150,24 @@ txtlb <- reactive({
 })
 
 # smoother stats of GAMs for selected station
-modstabsmth <- reactive({
+modtabsmth <- reactive({
   
   # inputs
-  mods <- mods()
+  mod <- mod()
   
-  out <- anlz_smooth(mods = mods)
+  out <- anlz_smooth(mod)
   
   return(out)
   
 })
 
 # summary stats of GAMs, model fit/perf
-modstabfit <- reactive({
+modtabfit <- reactive({
   
   # input 
-  mods <- mods()
+  mod <- mod()
   
-  out <- anlz_fit(mods = mods)
+  out <- anlz_fit(mod)
   
   return(out)
   
@@ -189,10 +177,10 @@ modstabfit <- reactive({
 prddoy <- reactive({
   
   # inputs
-  mods <- mods()
+  mod <- mod()
   ylb <- ylb()
   
-  out <- show_prddoy(mods = mods, ylab = ylb)
+  out <- show_prddoy(mod, ylab = ylb)
   
   return(out)
   
@@ -202,10 +190,10 @@ prddoy <- reactive({
 prdseries <- reactive({
   
   # inputs
-  mods <- mods()
+  mod <- mod()
   ylb <- ylb()
   
-  out <- show_prdseries(mods = mods, ylab = ylb)
+  out <- show_prdseries(mod, ylab = ylb)
   
   return(out)
   
@@ -215,10 +203,10 @@ prdseries <- reactive({
 prdseason <- reactive({
   
   # inputs
-  mods <- mods()
+  mod <- mod()
   ylb <- ylb()
   
-  out <- show_prdseason(mods = mods, ylab = ylb)
+  out <- show_prdseason(mod, ylab = ylb)
 
   return(out)
   
@@ -228,40 +216,10 @@ prdseason <- reactive({
 prd3d <- reactive({
   
   # inputs
-  modsind <- modsind()
+  mod <- mod()
   ylb <- ylb()
   
-  out <- show_prd3d(mods = modsind, ylab = ylb)
-  
-  return(out)
-  
-})
-
-# smoother stats of selected GAM for selected station
-modtabsmth <- reactive({
-  
-  # input
-  mod <- input$mod
-  modstabsmth <- modstabsmth()
-
-  out <- modstabsmth %>% 
-    filter(model %in% mod) %>% 
-    select(-model)
-  
-  return(out)
-  
-})
-
-# summary stats of selected GAM for selected station
-modtabfit <- reactive({
-  
-  # input
-  mod <- input$mod
-  modstabfit <- modstabfit()
-  
-  out <- modstabfit %>% 
-    filter(model %in% mod) %>% 
-    select(-model)
+  out <- show_prd3d(mod, ylab = ylb)
   
   return(out)
   
@@ -271,9 +229,9 @@ modtabfit <- reactive({
 gamchk <- reactive({
   
   # inputs
-  modsind <- modsind()
+  mod <- mod()
   
-  out <- modsind[[1]] %>% 
+  out <- mod %>% 
     gam.check()
   
   return(out)
@@ -286,13 +244,13 @@ perchg <- reactive({
   # inputs
   yrbs <- as.numeric(input$yrbs)
   yrts <- as.numeric(input$yrts)
-  modsind <- modsind()
+  mod <- mod()
   ylb <- ylb()
   
   req(yrbs)
   req(yrts)
   
-  out <- show_perchg(mods = modsind, baseyr = yrbs, testyr = yrts, ylab = ylb)
+  out <- show_perchg(mod, baseyr = yrbs, testyr = yrts, ylab = ylb)
   
   return(out)
   
@@ -304,12 +262,12 @@ avgseason <- reactive({
   # inputs
   dytr <- input$dytr
   yrtr <- input$yrtr
-  modsind <- modsind()
+  mod <- mod()
   ylb <- ylb()
   
   req(yrtr)
 
-  out <- try({show_avgseason(mods = modsind, doystr = dytr[1] , doyend = dytr[2], yrstr = yrtr[1], yrend = yrtr[2], 
+  out <- try({show_avgseason(mod, doystr = dytr[1] , doyend = dytr[2], yrstr = yrtr[1], yrend = yrtr[2], 
                         ylab = ylb)})
   
   validate(
@@ -326,13 +284,13 @@ trndseason <- reactive({
   # inputs
   dytr <- input$dytr
   yrtr <- input$yrtr
-  modsind <- modsind()
+  mod <- mod()
   wntr <- input$wntr
   wnty <- input$wnty
   
   req(yrtr)
   
-  out <- show_trndseason(mods = modsind, doystr = dytr[1] , doyend = dytr[2], win = wntr, justify = wnty, 
+  out <- show_trndseason(mod, doystr = dytr[1] , doyend = dytr[2], win = wntr, justify = wnty, 
                         ylab = 'Change per year')
   
   return(out)
@@ -342,7 +300,7 @@ trndseason <- reactive({
 
 ## Exploratory plots
 
-The following plots show the raw data for all monitoring stations and parameters in South Bay, 1990 - 2020.  Select the parameter, plot type (total time series, by year, or by month), and variable transformation.  The year and month plots are aggregated boxplots of all observations at a station for each selected time period.  The variable transformation can be used to show the observations in arithmetic or logarithmic space.
+The following plots show the raw data for all monitoring stations and parameters in South Bay, 1990 - 2019.  Select the parameter, plot type (total time series, by year, or by month), and variable transformation.  The year and month plots are aggregated boxplots of all observations at a station for each selected time period.  The variable transformation can be used to show the observations in arithmetic or logarithmic space.
 
 ```{r, echo = F}
 # selection widgets
@@ -363,67 +321,41 @@ column(2, selectInput("typ", "Choose plot type:", c('tot', 'yrs', 'mos')))
 
 ## GAMs of `r renderText(txtlb())` with annual, seasonal trends {.tabset}
 
-Generalized additive models (GAMs) were developed to describe trends in `r renderText(txtlb())` at each of the monitoring stations in South Bay.  The station and selected model can be chosen from the drop down menus.  Four types of GAMs were developed for the time series at each station to model `r renderText(txtlb())` as a function of time, where time is measured as an annual and seasonal effect.  The four models descibe the time components differently and represent increasing levels of complexity to describe the `r renderText(txtlb())` trend:
+Generalized additive models (GAMs) were developed to describe trends in `r renderText(txtlb())` at each of the monitoring stations in South Bay.  The station can be chosen from the drop down menus.  One GAM was developed for the time series at each station to model `r renderText(txtlb())` as a function of time, where time is measured as a continuous year value.
 
-* `gam0`: `r renderText(input$parameter)` ~ year + s(doy)
+* `S`: `r renderText(input$parameter)` ~  s(cont_year, k = *large*)
 
-* `gam1`: `r renderText(input$parameter)` ~ year + s(doy) + s(year)
+The `cont_year` variable is measured as a continuous numeric value for the annual effect (e.g., January 1st, 2000 is 2000.0, July 1st, 2000 is 2000.5, etc.). The function `s()` models `year` as a smoothed, non-linear variable.  The `k` value is a theoretical upper limit on the number knots used to fit the smoother for `cont_year`.  The optimal number of knots are determined automatically using generalized cross-validation as implemented with the `mgcv()` function.  Using a sufficiently large number for `k` ensures the model is not underfit to the data. The upper limit of `k` was chosen as 12 times the number of years of data at each station (~360).
 
-* `gam2`: `r renderText(input$parameter)` ~ year + s(doy) + s(year) + ti(doy, year)
+__Selected station:  `r renderText({input$station})`, Selected parameter: `r renderText(txtlb())`__
 
-* `gam6`: `r renderText(input$parameter)` ~ year + s(doy) + s(year, k = *large*)
+### Predictions
 
-For all models, `year` is measured as a continuous numeric variable for the annual effect (e.g., January 1st, 2000 is 2000.0, July 1st, 2000 is 2000.5, etc.) and `doy` is the day of year as a numeric value from 1 to 366.  All models include `year` as a linear effect.  The functions `s()` model either `year` or `doy` as a smoothed, non-linear variable and `ti()` models the interaction between the two.  The fourth model, `gam6`, is the same as `gam1` with the exception that the optimal amount of smoothing on `year` is not constrained by increasing the theoretical upper limit on the number of knots for `k`.  The upper limit of `k` was chosen as 12 times the number of years of data at each station (~300).
-
-### All models
-
-__Select the station with the drop down menu for the summary of all four GAM `r renderText(txtlb())` models.__  
-
-The first table shows the individual effects of the modelled components of each model as the estimated degrees of freedom (`edf`), the reference degrees of freedom (`Ref.df`), the test statistic (`F`), and significance of the component (`p-value`).  The significance of the component is in part based on the difference between `edf` and `Ref.df`.  The second table shows the overall summary of each model as Akaike Information Criterion (`AIC`), the generalized cross-validation score (`GCV`), and the `R2` values.  Lower values for `AIC` and `GCV` and higher values for `R2` indicate improved model fit. The `k` column shows the upper limit for the number of knots on the `year` term, when appropriate (i.e., not gam0). 
-
-The three plots show the predicted trends from each of the four models.  The first plot shows estimated `r renderText(txtlb())` by day of year with separate lines for each year.  The second plot show predictions for the four models across the entire time series. The third plot show the predicted trends with separate lines for each month across the time series.
-
-```{r}
-output$modstabsmth <- renderTable(modstabsmth())
-output$modstabfit <- renderTable(modstabfit())
-tableOutput('modstabsmth')
-tableOutput('modstabfit')
-```
+The four plots show the predicted trends from the model.  The first plot shows estimated `r renderText(txtlb())` by day of year with separate lines for each year.  The second plot show predictions across the entire time series. The third plot show the predicted trends with separate lines for each month across the time series. The final plot shows the results as a three-dimensional fit of the estimated trends across year and day of year with the z-axis showing estimated `r renderText(txtlb())`.  
 
 ```{r}
 output$prddoy <- renderPlot(prddoy())
 plotOutput('prddoy', height = "400px", width = "900px")
 ```
 
-#### {.tabset .tabset-pills}
-
-##### Continuous
-
 ```{r}
 output$prdseries <- renderPlot(prdseries())
-plotOutput('prdseries', height = "700px")
+plotOutput('prdseries', height = "370px")
 ```
-
-##### By season
 
 ```{r}
 output$prdseason <- renderPlot(prdseason())
-plotOutput('prdseason', height = "800px")
+plotOutput('prdseason', height = "400px")
 ```
 
-### Individual model {.tabset .tabset-pills}
-
-__Selected station:  `r renderText({input$station})`__
-
-The following provides additional information for one of the four models for the selected station.  __Use the drop down menu to select a specific model.__  
-
-The first tab shows a three-dimensional fit of the estimated trends across year and day of year with the z-axis showing estimated `r renderText(txtlb())`.  The second plot shows a table of summary statistics for the selected model (repeated from above) and plot diagnostics of the model fit.  The third tab shows the predicted trends across the time series (and options for trend assessment) and the predicted trends as seasonal aggregations with 95% confidence intervals within each year.
-
-```{r, echo = F}
-selectInput('mod', "Select a model:", choices = c('gam0', 'gam1', 'gam2', 'gam6'), selected = 'gam2')
+```{r}
+output$prd3d <- renderPlotly(prd3d())
+plotlyOutput('prd3d')
 ```
 
-#### Fit
+### Fit
+
+The first table shows the estimates for the continuous year smoother as the estimated degrees of freedom (edf), the reference degrees of freedom (Ref.df), the test statistic (F), and significance of the component (p-value). The significance is in part based on the difference between edf and Ref.df. The second table shows the overall model summary as Akaike Information Criterion (AIC), the generalized cross-validation score (GCV), and the R2 values. In general, lower values for AIC and GCV and higher values for R2 indicate improved model fit. The plots are results from the `gam.check()` function that provides a standard assessment of GAM fit.
 
 ```{r}
 output$modtabsmth <- renderTable(modtabsmth())
@@ -437,15 +369,17 @@ output$gamchk <- renderPlot(gamchk(), height = 550)
 plotOutput('gamchk', height="550px")
 ```
 
-#### Trends 
+### Trends 
+
+This tab shows the predicted trends across the time series (and options for trend assessment) and the predicted trends as seasonal aggregations with 95% confidence intervals within each year.
 
 ```{r}
 
 column(4,
        renderUI({
 
-         req(modsind())
-         yrs <- modsind()[[1]]$model %>% pull(dec_time) %>% date_decimal(.) %>% year %>% unique
+         req(mod())
+         yrs <- mod()$model %>% pull(cont_year) %>% date_decimal(.) %>% year %>% unique
          pickerInput('yrbs', 'Select base years:', choices = yrs, selected = yrs[c(1,2)], multiple = T)
          
          })
@@ -453,8 +387,8 @@ column(4,
 column(4,
        renderUI({
          
-         req(modsind())
-         yrs <- modsind()[[1]]$model %>% pull(dec_time) %>% date_decimal(.) %>% year %>% unique
+         req(mod())
+         yrs <- mod()$model %>% pull(cont_year) %>% date_decimal(.) %>% year %>% unique
          pickerInput('yrts', 'Select test years:', choices = yrs, selected = rev(yrs)[c(1,2)], multiple = T)
          
          })
@@ -474,19 +408,11 @@ column(12,
   column(6,
     renderUI({
       
-      req(modsind())
-      yrs <- modsind()[[1]]$model %>% pull(dec_time) %>% date_decimal(.) %>% year %>% unique
-      sliderInput('yrtr', 'Select years for across-year trend estimate:', min = min(yrs), max = max(yrs), value = c(2010, 2020), sep = "", step = 1)
+      req(mod())
+      yrs <- mod()$model %>% pull(cont_year) %>% date_decimal(.) %>% year %>% unique
+      sliderInput('yrtr', 'Select years for across-year trend estimate:', min = min(yrs), max = max(yrs), value = c(2015, 2019), sep = "", step = 1)
       
     })
-  )
-)
-column(12, 
-  column(6, 
-    sliderInput('wntr', 'Select window size:', min = 2, max = 20, value = 5)       
-  ), 
-  column(6, 
-    selectInput('wnty', 'Select window type:', choices = c('left', 'center', 'right'))     
   )
 )
 ```
@@ -497,18 +423,20 @@ plotOutput('avgseason')
 ```
 
 <br></br>
-<br></br>
-<br></br>
 
+```{r}
+column(12, 
+  column(6, 
+    sliderInput('wntr', 'Select window size:', min = 2, max = 20, value = 5)       
+  ), 
+  column(6, 
+    selectInput('wnty', 'Select window type:', choices = c('center', 'left', 'right'))     
+  )
+)
+```
 
 ```{r}
 output$trndseason <- renderPlot(trndseason(), height = 370)
 plotOutput('trndseason')
 ```
 
-#### 3d
-
-```{r}
-output$prd3d <- renderPlotly(prd3d())
-plotlyOutput('prd3d')
-```
