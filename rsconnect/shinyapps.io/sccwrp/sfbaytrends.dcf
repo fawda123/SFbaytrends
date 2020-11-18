@@ -5,6 +5,6 @@ account: sccwrp
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 619653
-bundleId: 3867496
+bundleId: 3877161
 url: https://sccwrp.shinyapps.io/sfbaytrends/
-when: 1605544869.89902
+when: 1605726269.86493
