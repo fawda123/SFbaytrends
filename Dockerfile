@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
 
 # install R packages required 
 RUN R -e "install.packages('shiny', repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages('rmarkdown', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('tidyverse', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('lubridate', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('remotes', repos='http://cran.rstudio.com/')"
@@ -29,7 +30,7 @@ RUN R -e "install.packages('gridExtra', repos='http://cran.rstudio.com/')"
 # copy the app to the image
 COPY SFbaytrends.Rproj /srv/shiny-server/
 COPY kable.css /srv/shiny-server/
-COPY app.R /srv/shiny-server/
+COPY index.Rmd /srv/shiny-server/
 COPY R /srv/shiny-server/R
 COPY data /srv/shiny-server/data
 
