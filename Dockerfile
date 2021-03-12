@@ -28,17 +28,20 @@ RUN R -e "install.packages('gridExtra', repos='http://cran.rstudio.com/')"
 
 
 # copy the app to the image
-COPY SFbaytrends.Rproj /srv/shiny-server/
-COPY kable.css /srv/shiny-server/
-COPY index.Rmd /srv/shiny-server/
-COPY R /srv/shiny-server/R
-COPY data /srv/shiny-server/data
+RUN sudo mkdir /srv/shiny-server/SFbaytrends
+COPY google-analytics.js /srv/shiny-server/SFbaytrends
+COPY kable.css /srv/shiny-server/SFbaytrends
+COPY index.Rmd /srv/shiny-server/SFbaytrends
+COPY /R /srv/shiny-server/SFbaytrends/R
+COPY /data /srv/shiny-server/SFbaytrends/data
 
 # select port
 EXPOSE 3838
 
 # allow permission
-RUN sudo chown -R shiny:shiny /srv/shiny-server
+RUN chown shiny:shiny /var/lib/shiny-server/
 
-# run app
+COPY shiny-server.sh /usr/bin/shiny-server.sh
+RUN ["chmod", "+x", "/usr/bin/shiny-server.sh"]
+
 CMD ["/usr/bin/shiny-server.sh"]
