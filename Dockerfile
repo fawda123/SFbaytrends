@@ -14,12 +14,12 @@ RUN apt-get update && apt-get install -y \
 
 
 # install R packages required 
+RUN R -e "install.packages('remotes', repos='http://cran.rstudio.com/')"
+RUN R -e "remotes::install_github('tbep-tech/wqtrends', upgrade = 'never')"
 RUN R -e "install.packages('shiny', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('rmarkdown', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('tidyverse', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('lubridate', repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('remotes', repos='http://cran.rstudio.com/')"
-RUN R -e "remotes::install_github('tbep-tech/wqtrends')"
 RUN R -e "install.packages('ggmap', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('shinyWidgets', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('mgcv', repos='http://cran.rstudio.com/')"
@@ -28,12 +28,10 @@ RUN R -e "install.packages('gridExtra', repos='http://cran.rstudio.com/')"
 
 
 # copy the app to the image
+RUN sudo mkdir /srv/shiny-server/testapp
 RUN sudo mkdir /srv/shiny-server/SFbaytrends
-COPY google-analytics.js /srv/shiny-server/SFbaytrends
-COPY kable.css /srv/shiny-server/SFbaytrends
-COPY index.Rmd /srv/shiny-server/SFbaytrends
-COPY /R /srv/shiny-server/SFbaytrends/R
-COPY /data /srv/shiny-server/SFbaytrends/data
+COPY /trends /srv/shiny-server/SFbaytrends
+COPY /testapp /srv/shiny-server/testapp
 
 # select port
 EXPOSE 3838
