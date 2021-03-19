@@ -26,13 +26,6 @@ RUN R -e "install.packages('mgcv', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('plotly', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('gridExtra', repos='http://cran.rstudio.com/')"
 
-
-# copy the app to the image
-RUN sudo mkdir /srv/shiny-server/testapp
-RUN sudo mkdir /srv/shiny-server/SFbaytrends
-COPY /trends /srv/shiny-server/SFbaytrends
-COPY /testapp /srv/shiny-server/testapp
-
 # select port
 EXPOSE 3838
 
