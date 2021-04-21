@@ -377,7 +377,7 @@ column(4,
 
          req(mod())
          yrs <- mod()$model %>% pull(cont_year) %>% date_decimal(.) %>% year %>% unique
-         pickerInput('yrbs', 'Select base years:', choices = yrs, selected = yrs[c(1,2)], multiple = T)
+         pickerInput('yrbs', 'Select base years:', choices = yrs, selected = yrs[1], multiple = T)
          
          })
 )
@@ -386,7 +386,7 @@ column(4,
          
          req(mod())
          yrs <- mod()$model %>% pull(cont_year) %>% date_decimal(.) %>% year %>% unique
-         pickerInput('yrts', 'Select test years:', choices = yrs, selected = rev(yrs)[c(1,2)], multiple = T)
+         pickerInput('yrts', 'Select test years:', choices = yrs, selected = rev(yrs)[1], multiple = T)
          
          })
 )
