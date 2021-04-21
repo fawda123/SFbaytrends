@@ -52,15 +52,12 @@ save(datprc, file = 'data/datprc.RData', compress = 'xz')
 
 # station lat/lon as separate file ----------------------------------------
 
-# prj <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
-# 
-# data(datprc)
-# 
-# locs <- read.csv('ignore/usgs_station_lat_lon.csv') %>% 
-#   filter(Station %in% datprc$station)
-# 
-# save(locs, file = '../wqtrends-manu/data/locs.RData', compress = 'xz')
-# save(locs, file = 'data/locs.RData', compress = 'xz')
+data(datprc)
+
+locs <- read.csv('raw/usgs_stations.csv') %>%
+  filter(Station %in% datprc$station)
+
+save(locs, file = 'data/locs.RData', compress = 'xz')
 
 # save separate rdata model files for each station, parameter -------------
 
