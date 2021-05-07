@@ -1,6 +1,6 @@
 # README
 
-Materials for analysis of SF bay trends, see results [here](https://sccwrp.shinyapps.io/sfbaytrends/)
+Materials for Shiny application to evaluate SF bay trends with [wqtrends](https://tbep-tech.github.io/wqtrends) R package
 
 ## Data
 
