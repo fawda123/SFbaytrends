@@ -258,18 +258,28 @@ perchg <- reactive({
 })
 
 # seasonal averages
-avgseason <- reactive({
+metseason <- reactive({
   
   # inputs
   dytr <- input$dytr
   yrtr <- input$yrtr
+  metsel <- input$metsel
   mod <- mod()
   ylb <- ylb()
   
   req(yrtr)
+  
+  # add explicit quotes for parse
+  ylb <- paste0('\"', ylb, '\"')
 
-  out <- try({show_avgseason(mod, doystr = dytr[1] , doyend = dytr[2], yrstr = yrtr[1], yrend = yrtr[2], 
-                        ylab = ylb)})
+  out <- try({
+    
+    toprs <- paste0('show_metseason(mod, metfun = ', metsel, ', doystr = ', dytr[1], ', doyend = ', dytr[2], ', yrstr = , ', 
+                    yrtr[1], ', yrend = ', yrtr[2], ', ylab = ', ylb, ', nsim = 1e3, na.rm = TRUE)')
+    
+    eval(parse(text = toprs))
+    
+    })
   
   validate(
     need(inherits(out, 'ggplot'), 'Pick different year range')
@@ -286,13 +296,17 @@ trndseason <- reactive({
   dytr <- input$dytr
   yrtr <- input$yrtr
   mod <- mod()
+  metsel <- input$metsel
   wntr <- input$wntr
   wnty <- input$wnty
   
   req(yrtr)
   
-  out <- show_trndseason(mod, doystr = dytr[1] , doyend = dytr[2], win = wntr, justify = wnty, 
-                        ylab = 'Change per year')
+  # add 
+  out <- paste0('show_trndseason(mod, ', metsel, ', doystr = ', dytr[1], ', doyend = ', dytr[2], ', win = ', wntr, 
+    ', justify = \"', wnty, '\", ylab = \"Change per year\", nsim = 1e3, na.rm = TRUE)')
+ 
+  out <- eval(parse(text = out))
   
   return(out)
   
@@ -412,13 +426,20 @@ column(12,
     })
   )
 )
+column(12, 
+  column(6, 
+    selectInput('metsel', 'Select summary metric:', choices = c('mean', 'min', 'max', 'var'), selected = 'mean')       
+  )
+)
 ```
 
 ```{r}
-output$avgseason <- renderPlot(avgseason(), height = 320)
-plotOutput('avgseason')
+output$metseason <- renderPlot(metseason(), height = 320)
+plotOutput('metseason')
 ```
 
+<br></br>
+<br></br>
 <br></br>
 
 ```{r}
