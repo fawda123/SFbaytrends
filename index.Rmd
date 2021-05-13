@@ -3,6 +3,8 @@ title: "GAM evaluation - SF South Bay"
 output: 
   html_document:
     css: kable.css
+    includes: 
+      in_header: cssloaders_in_header.html
 self_contained: yes
 runtime: shiny
 ---
@@ -25,6 +27,7 @@ library(mgcv)
 library(plotly)
 library(gridExtra)
 library(shinyWidgets)
+library(shinycssloaders)
 source('R/funcs.R')
 
 data(datprc)
@@ -327,7 +330,7 @@ column(4, selectInput("typ", "Choose plot type:", c('tot', 'yrs', 'mos')))
 ```{r}
 # make the plot
 output$mapselplo <- renderPlot(mapselplo(), height = 300, width = 900)
-plotOutput('mapselplo')
+plotOutput('mapselplo') %>% withSpinner()
 ```
 
 ## GAM results {.tabset}
@@ -346,22 +349,22 @@ The four plots show the predicted trends from the model.  The first plot shows e
 
 ```{r}
 output$prddoy <- renderPlot(prddoy())
-plotOutput('prddoy', height = "400px", width = "900px")
+plotOutput('prddoy', height = "400px", width = "900px") %>% withSpinner()
 ```
 
 ```{r}
 output$prdseries <- renderPlot(prdseries())
-plotOutput('prdseries', height = "330px")
+plotOutput('prdseries', height = "330px") %>% withSpinner()
 ```
 
 ```{r}
 output$prdseason <- renderPlot(prdseason())
-plotOutput('prdseason', height = "400px")
+plotOutput('prdseason', height = "400px") %>% withSpinner()
 ```
 
 ```{r}
 output$prd3d <- renderPlotly(prd3d())
-plotlyOutput('prd3d')
+plotlyOutput('prd3d') %>% withSpinner()
 ```
 
 ### Fit
@@ -377,7 +380,7 @@ tableOutput('modtabfit')
 
 ```{r}
 output$gamchk <- renderPlot(gamchk(), height = 550)
-plotOutput('gamchk', height="550px")
+plotOutput('gamchk', height="550px") %>% withSpinner()
 ```
 
 ### Trends 
@@ -408,7 +411,7 @@ column(4,
 
 ```{r}
 output$perchg <- renderPlot(perchg(), height = 320)
-plotOutput('perchg')
+plotOutput('perchg') %>% withSpinner()
 ```
 
 ```{r}
@@ -435,7 +438,7 @@ column(12,
 
 ```{r}
 output$metseason <- renderPlot(metseason(), height = 320)
-plotOutput('metseason')
+plotOutput('metseason') %>% withSpinner()
 ```
 
 <br></br>
@@ -455,6 +458,6 @@ column(12,
 
 ```{r}
 output$trndseason <- renderPlot(trndseason(), height = 370)
-plotOutput('trndseason')
+plotOutput('trndseason') %>% withSpinner()
 ```
 

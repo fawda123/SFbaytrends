@@ -25,6 +25,7 @@ RUN R -e "install.packages('shinyWidgets', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('mgcv', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('plotly', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('gridExtra', repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages('shinycssloaders', repos='http://cran.rstudio.com/')"
 
 # select port
 EXPOSE 3838
