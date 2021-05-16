@@ -24,7 +24,6 @@ library(ggmap)
 library(mgcv)
 library(plotly)
 library(gridExtra)
-library(shinyWidgets)
 library(shinycssloaders)
 source('R/funcs.R')
 
@@ -392,7 +391,7 @@ column(4,
 
          req(mod())
          yrs <- mod()$model %>% pull(cont_year) %>% date_decimal(.) %>% year %>% unique
-         pickerInput('yrbs', 'Select base years:', choices = yrs, selected = yrs[1], multiple = T)
+         selectInput('yrbs', 'Select base years:', choices = yrs, selected = yrs[1], multiple = T)
          
          })
 )
@@ -401,7 +400,7 @@ column(4,
          
          req(mod())
          yrs <- mod()$model %>% pull(cont_year) %>% date_decimal(.) %>% year %>% unique
-         pickerInput('yrts', 'Select test years:', choices = yrs, selected = rev(yrs)[1], multiple = T)
+         selectInput('yrts', 'Select test years:', choices = yrs, selected = rev(yrs)[1], multiple = T)
          
          })
 )
