@@ -4,7 +4,7 @@ output:
   html_document:
     css: kable.css
     includes: 
-      in_header: cssloaders_in_header.html
+      in_header: ["cssloaders_in_header.html", "google-analytics.html"]
 self_contained: yes
 runtime: shiny
 ---
@@ -14,8 +14,6 @@ runtime: shiny
 # globals
 library(knitr)
 opts_chunk$set(warning = FALSE, message = FALSE, dev.args = list(bg = 'transparent'), eval = T, echo = F)
-
-tags$head(includeScript("google-analytics.js"))
 
 library(tidyverse)
 library(lubridate)
