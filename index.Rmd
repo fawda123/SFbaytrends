@@ -313,6 +313,8 @@ trndseason <- reactive({
 })
 ```
 
+This application uses data from long-term USGS water quality monitoring in San Francisco Bay ([Cloern and Schraga 2016](https://doi.org/10.5066/F7TQ5ZPR){target="_blank"}; [Schraga and Cloern 2017](https://doi.org/10.1038/sdata.2017.98){target="_blank"}; [Schraga et al. 2020](https://doi.org/10.5066/F7D21WGF){target="_blank"}).  Additional background details on the GAM-mixmeta approach are presented in [Beck et al (2022)](https://doi.org/10.1016/j.scitotenv.2021.149927){target="_blank"}.
+
 ## Exploratory plots
 
 The following plots show the raw data for all monitoring stations and parameters in South Bay, 1990 - 2019.  Select the station, parameter, and plot type (total time series, by year, or by month).  The year and month plots are aggregated boxplots of all observations at a station for each selected time period.
