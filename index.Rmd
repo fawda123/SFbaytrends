@@ -31,12 +31,12 @@ data(datprc)
 data(locs)
 data(map)
 
-yrs <- seq(1990, 2019)
 params <- list(
   'Chlorophyll-a (ug/L)' = 'chl', 
   'GPP (mg C m-2 d-1)' = 'gpp', 
   'DO (mg/L)' = 'do', 
-  'DO sat. (%)' = 'dosat'
+  'DO sat. (%)' = 'dosat', 
+  'Kd (m-1)' = 'kd'
 )
 
 # ext <- make_bbox(locs$lon, locs$lat, f = 0.2)
@@ -67,7 +67,11 @@ mapselplo <- reactive({
   # map
   p1 <- pbase + 
     geom_point(data = locpt, aes(x = lon, y = lat), colour = 'tomato1', size = 8) +
-    geom_text(data = locs, aes(x = lon, y = lat, label = Station))
+    geom_text(data = locs, aes(x = lon, y = lat, label = Station)) +
+    theme(
+      axis.text.x = element_text(size = 10, angle = 45, hjust = 1),
+      axis.text.y = element_text(size = 10)
+      )
 
   # time series raw
   toplo <- datprc %>% 
@@ -87,9 +91,12 @@ mapselplo <- reactive({
   # create plots for whole time series, by year, by month
   p2 <- p2 +
     theme_bw() +
-    theme(axis.title.x = element_blank())
+    theme(
+      axis.title.x = element_blank(), 
+      axis.text.x = element_text(size = 10, angle = 45, hjust = 1)
+      )
   
-  if(parameter %in% c('chl', 'gpp'))
+  if(parameter %in% c('chl', 'gpp', 'kd'))
     p2 <- p2 + 
       scale_y_log10(ylb)
   if(parameter %in% c('do', 'dosat'))

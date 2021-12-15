@@ -19,7 +19,7 @@ chlraw <- read.csv('data/raw/sfb_surf_CB_SB_LSB.csv', stringsAsFactors = F)
 gppraw <- read.csv('data/raw/sfb_GPP_monthly.csv', stringsAsFactors = F) 
 doraw <- read.csv('data/raw/CB_SB_LSB_depthavg_O2.csv', stringsAsFactors = F)
 
-# get chlorophyll 
+# get chlorophyll as ug l-1
 chldat <- chlraw %>% 
   select(date, station, chl = chl_merge) %>% 
   gather('param', 'value', -date, -station) %>% 
@@ -31,10 +31,9 @@ chldat <- chlraw %>%
     mo = month(date, label = T),
     param = tolower(param)
   ) %>% 
-  filter(yr >= 1990 & yr <= 2019) %>% 
   filter(!is.na(value))
 
-# get gpp
+# get gpp as mg C m-2 d-1
 gppdat <- gppraw %>% 
   select(cont_year = dec_date, station, GPP) %>% 
   mutate(
@@ -49,10 +48,26 @@ gppdat <- gppraw %>%
   ) %>% 
   gather('param', 'value', gpp) %>% 
   select(date, station, param, value, doy, cont_year, yr, mo) %>% 
-  filter(yr >= 1990 & yr <= 2019) %>% 
   filter(!is.na(value))
 
-# get depht-averaged do
+# light attenuation as m-1
+kddat <- gppraw %>% 
+  select(cont_year = dec_date, station, ext_merge) %>% 
+  mutate(
+    date = date_decimal(cont_year),
+    date = as.Date(date),
+    doy = yday(date),
+    yr = year(date),
+    mo = month(date, label = T)
+  ) %>% 
+  rename(
+    kd = ext_merge
+  ) %>% 
+  gather('param', 'value', kd) %>% 
+  select(date, station, param, value, doy, cont_year, yr, mo) %>% 
+  filter(!is.na(value))
+
+# get depth-averaged do (mg/l and % sat)
 dodat <- doraw %>% 
   select(date, station, do, dosat = do_sat) %>% 
   gather('param', 'value', -date, -station) %>% 
@@ -64,13 +79,43 @@ dodat <- doraw %>%
     mo = month(date, label = T),
     param = tolower(param)
   ) %>% 
-  filter(yr >= 1990 & yr <= 2019) %>% 
   filter(!is.na(value))
 
 # combine new do ests, gpp with datprc
-datprc <- bind_rows(chldat, gppdat, dodat) %>% 
-  arrange(station, param, date)
+datprc <- bind_rows(chldat, gppdat, dodat, kddat) %>% 
+  arrange(station, param, date) %>% 
+  filter(yr <= 2019)
 
+# find the most recent year with less than five observations
+# defaults to last year if all have at least five
+yrflt <- datprc %>% 
+  group_by(station, param, yr) %>% 
+  summarise(cnt = n(), .groups= 'drop') %>% 
+  group_by(station, param) %>% 
+  arrange(station, param, -yr) %>% 
+  mutate(
+    thrsh = cnt < 5, 
+    thrsh = cumsum(thrsh),
+    toflt = case_when(
+      thrsh == 1 & !duplicated(thrsh) ~ T,
+      sum(thrsh) == 0 ~ c(rep(NA, length(thrsh) -1), T)
+    )
+  ) %>% 
+  na.omit() %>% 
+  ungroup() %>% 
+  select(station, param, exclyr = yr)
+
+# join with min year for filter
+datprc <- datprc %>%
+  left_join(yrflt, by = c('station', 'param')) %>%
+  filter(yr > exclyr) %>%
+  select(-exclyr)
+
+# # combine new do ests, gpp with datprc
+# datprc <- bind_rows(chldat, gppdat, dodat) %>% 
+#   filter(yr >= 1990 & yr <= 2019) %>% 
+#   arrange(station, param, date)
+#
 # rawdat <- datprc
 # save(rawdat, file = '../wqtrends/data/rawdat.RData', compress = 'xz')
 
@@ -83,12 +128,12 @@ data(datprc)
 # data to model, same as datprc, params in wide format, nested by station
 # crossed with frms
 tomod <- datprc %>% 
-  filter(param %in% c('chl', 'do', 'dosat', 'gpp')) %>% # add parameters here
+  filter(param %in% c('chl', 'do', 'dosat', 'gpp', 'kd')) %>% # add parameters here
   group_by(station, param) %>% 
   nest %>% 
   mutate(
     trans = case_when(
-      param %in% c('chl', 'gpp') ~ 'log10', 
+      param %in% c('chl', 'gpp', 'kd') ~ 'log10', 
       T ~ 'ident'
     )
   )
