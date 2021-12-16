@@ -19,7 +19,7 @@ library(tidyverse)
 library(lubridate)
 library(shiny)
 library(wqtrends)
-# devtools::load_all('../wqtrends')
+# devtools::load_all('T:/04_STAFF/MARCUS/03_GIT/wqtrends')
 library(ggmap)
 library(mgcv)
 library(plotly)
@@ -38,6 +38,8 @@ params <- list(
   'DO sat. (%)' = 'dosat', 
   'Kd (m-1)' = 'kd'
 )
+
+bssz <- 16
 
 # ext <- make_bbox(locs$lon, locs$lat, f = 0.2)
 # map <- get_stamenmap(ext,  zoom = 11, maptype = "toner-lite", where = getwd())
@@ -188,7 +190,7 @@ prddoy <- reactive({
   mod <- mod()
   ylb <- ylb()
   
-  out <- show_prddoy(mod, ylab = ylb)
+  out <- show_prddoy(mod, ylab = ylb, base_size = bssz)
   
   return(out)
   
@@ -201,7 +203,7 @@ prdseries <- reactive({
   mod <- mod()
   ylb <- ylb()
   
-  out <- show_prdseries(mod, ylab = ylb)
+  out <- show_prdseries(mod, ylab = ylb, base_size = bssz)
   
   return(out)
   
@@ -214,7 +216,7 @@ prdseason <- reactive({
   mod <- mod()
   ylb <- ylb()
   
-  out <- show_prdseason(mod, ylab = ylb)
+  out <- show_prdseason(mod, ylab = ylb, base_size = bssz)
 
   return(out)
   
@@ -258,7 +260,7 @@ perchg <- reactive({
   req(yrbs)
   req(yrts)
   
-  out <- show_perchg(mod, baseyr = yrbs, testyr = yrts, ylab = ylb)
+  out <- show_perchg(mod, baseyr = yrbs, testyr = yrts, ylab = ylb, base_size = bssz)
   
   return(out)
   
@@ -279,10 +281,16 @@ metseason <- reactive({
   # add explicit quotes for parse
   ylb <- paste0('\"', ylb, '\"')
 
+  # use ave if metsel is mean
+  useave <- F
+  if(metsel == 'mean')
+    useave <- T
+  
   out <- try({
     
-    toprs <- paste0('show_metseason(mod, metfun = ', metsel, ', doystr = ', dytr[1], ', doyend = ', dytr[2], ', yrstr = , ', 
-                    yrtr[1], ', yrend = ', yrtr[2], ', ylab = ', ylb, ', nsim = 1e3, na.rm = TRUE)')
+    toprs <- paste0('show_metseason(mod, metfun = ', metsel, ', doystr = ', dytr[1], ', doyend = ', dytr[2], ', yrstr = ', 
+                    yrtr[1], ', yrend = ', yrtr[2], ', ylab = ', ylb, ', nsim = 1e3, na.rm = TRUE, useave = ', useave, ', 
+                    base_size = ', bssz, ')')
     
     eval(parse(text = toprs))
     
@@ -309,9 +317,15 @@ trndseason <- reactive({
   
   req(yrtr)
   
+  # use ave if metsel is mean
+  useave <- F
+  if(metsel == 'mean')
+    useave <- T
+
   # add 
   out <- paste0('show_trndseason(mod, ', metsel, ', doystr = ', dytr[1], ', doyend = ', dytr[2], ', win = ', wntr, 
-    ', justify = \"', wnty, '\", ylab = \"Change per year\", nsim = 1e3, na.rm = TRUE)')
+    ', justify = \"', wnty, '\", ylab = \"Change per year\", nsim = 1e3, na.rm = TRUE, useave = ', useave, 
+    ', base_size = ', bssz, ')')
  
   out <- eval(parse(text = out))
   
