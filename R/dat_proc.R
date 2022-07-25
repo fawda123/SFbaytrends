@@ -18,6 +18,7 @@ save(locs, file = 'data/locs.RData', compress = 'xz')
 chlraw <- read.csv('data/raw/sfb_surf_CB_SB_LSB.csv', stringsAsFactors = F)
 gppraw <- read.csv('data/raw/sfb_GPP_monthly.csv', stringsAsFactors = F) 
 doraw <- read.csv('data/raw/CB_SB_LSB_depthavg_O2.csv', stringsAsFactors = F)
+sscraw <- read.csv('data/raw/Dumbarton_BridgeProcessed_15min.csv', stringsAsFactors = F)
 
 # get chlorophyll as ug l-1
 chldat <- chlraw %>% 
@@ -81,10 +82,26 @@ dodat <- doraw %>%
   ) %>% 
   filter(!is.na(value))
 
+# get SSC as mg/L
+sscdat <- sscraw %>% 
+  select(ts_pst, ssc = ssc_mgL) %>% 
+  mutate(
+    ts_pst = mdy_hm(ts_pst, tz = "America/Los_Angeles")
+  ) %>% 
+  gather('param', 'value', -ts_pst) %>% 
+  mutate(
+    date = date(ts_pst)
+  ) %>% 
+  filter(!is.na(value))%>%
+  group_by(date) %>%
+  summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE))) %>%
+  rename(ssc = value) 
+
 # combine new do ests, gpp with datprc
 datprc <- bind_rows(chldat, gppdat, dodat, kddat) %>% 
   arrange(station, param, date) %>% 
   filter(yr <= 2019)
+datprc <- merge(datprc, sscdat)
 
 # find the most recent year with less than five observations
 # defaults to last year if all have at least five
@@ -112,10 +129,10 @@ datprc <- datprc %>%
   select(-exclyr)
 
 # # combine new do ests, gpp with datprc
-# datprc <- bind_rows(chldat, gppdat, dodat) %>% 
-#   filter(yr >= 1990 & yr <= 2019) %>% 
+# datprc <- bind_rows(chldat, gppdat, dodat) %>%
+#   filter(yr >= 1990 & yr <= 2019) %>%
 #   arrange(station, param, date)
-#
+# 
 # rawdat <- datprc
 # save(rawdat, file = '../wqtrends/data/rawdat.RData', compress = 'xz')
 
