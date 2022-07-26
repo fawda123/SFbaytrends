@@ -135,6 +135,7 @@ datprc <- datprc %>%
 # 
 # rawdat <- datprc
 # save(rawdat, file = '../wqtrends/data/rawdat.RData', compress = 'xz')
+# save(sscdat, file = '../wqtrends/data/sscdat.RData', compress = 'xz')
 
 save(datprc, file = 'data/datprc.RData', compress = 'xz')
 
