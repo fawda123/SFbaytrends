@@ -40,9 +40,8 @@ ul.task-list li input[type="checkbox"] {
 <body>
 
 <div id="quarto-content" class="page-columns page-rows-contents page-layout-full">
-<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-</div>
-<main class="content page-columns page-full column-page-left" id="quarto-document-content">
+
+<main class="content column-page" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
@@ -51,7 +50,7 @@ ul.task-list li input[type="checkbox"] {
 
 
 
-<div class="quarto-title-meta column-page-left">
+<div class="quarto-title-meta column-page">
 
     
   
@@ -63,15 +62,11 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 <p>This application uses data from long-term USGS water quality monitoring in San Francisco Bay (<a href="https://doi.org/10.5066/F7TQ5ZPR" target="_blank">Cloern and Schraga 2016</a>; <a href="https://doi.org/10.1038/sdata.2017.98" target="_blank">Schraga and Cloern 2017</a>; <a href="https://doi.org/10.5066/F7D21WGF" target="_blank">Schraga et al.&nbsp;2020</a>). Additional background details on the GAM, mixed-effects meta-analysis approach are presented in <a href="https://doi.org/10.1016/j.scitotenv.2021.149927" target="_blank">Beck et al (2022)</a>.</p>
-
-<div class="no-row-height column-margin column-container"><div class="">
-<div class="cell">
+<div class="panel-grid layout-sidebar ms-md-0 layout-sidebar-left">
+<div class="cell panel-sidebar card bg-light p-2 g-col-24 g-col-lg-7">
 <div class="cell-output-display">
 <div class="shiny-plot-output html-fill-item" id="mapselplo" style="width:100%;height:400px;"></div>
 </div>
-</div>
-<p><br></p>
-<div class="cell">
 <div class="cell-output-display no-overflow-x">
 <div class="form-group shiny-input-container" style="width:100%;">
 <label class="control-label" id="station-label" for="station">Choose station:</label>
@@ -89,8 +84,6 @@ ul.task-list li input[type="checkbox"] {
 </div>
 </div>
 </div>
-</div>
-<div class="cell">
 <div class="cell-output-display no-overflow-x">
 <div class="form-group shiny-input-container" style="width:100%;">
 <label class="control-label" id="parameter-label" for="parameter">Choose parameter:</label>
@@ -104,16 +97,12 @@ ul.task-list li input[type="checkbox"] {
 </div>
 </div>
 </div>
-</div>
-<div class="cell">
 <div class="cell-output-display">
 <div class="form-group shiny-input-container" style="width:100%;">
 <label class="control-label" id="dytr-label" for="dytr">Select day-of-year for season:</label>
 <input class="js-range-slider" id="dytr" data-skin="shiny" data-type="double" data-min="1" data-max="365" data-from="213" data-to="304" data-step="1" data-grid="true" data-grid-num="9.83783783783784" data-grid-snap="false" data-prettify-separator="," data-prettify-enabled="true" data-keyboard="true" data-drag-interval="true" data-data-type="number">
 </div>
 </div>
-</div>
-<div class="cell">
 <div class="cell-output-display no-overflow-x">
 <div class="form-group shiny-input-container" style="width:100%;">
 <label class="control-label" id="metsel-label" for="metsel">Select summary metric:</label>
@@ -126,13 +115,9 @@ ul.task-list li input[type="checkbox"] {
 </div>
 </div>
 </div>
-</div>
-<div class="cell">
 <div class="cell-output-display">
 <div id="yrtr" class="shiny-html-output"></div>
 </div>
-</div>
-<div class="cell">
 <div class="cell-output-display no-overflow-x">
 <div class="form-group shiny-input-container" style="width:100%;">
 <label class="control-label" id="wnty-label" for="wnty">Select window type:</label>
@@ -144,8 +129,6 @@ ul.task-list li input[type="checkbox"] {
 </div>
 </div>
 </div>
-</div>
-<div class="cell">
 <div class="cell-output-display">
 <div class="form-group shiny-input-container" style="width:100%;">
 <label class="control-label" id="wntr-label" for="wntr">Select window size:</label>
@@ -153,7 +136,9 @@ ul.task-list li input[type="checkbox"] {
 </div>
 </div>
 </div>
-</div></div><div class="cell">
+<div class="panel-fill panel-grid g-col-24 g-col-lg-17 pt-3 pt-lg-0">
+<div class="g-col-24">
+<div class="cell panel-fill">
 <div class="cell-output-display">
 <div class="shiny-plot-output html-fill-item" id="prdseries" style="width:100%;height:320px;"></div>
 </div>
@@ -162,6 +147,9 @@ ul.task-list li input[type="checkbox"] {
 </div>
 <div class="cell-output-display">
 <div class="shiny-plot-output html-fill-item" id="metseason" style="width:100%;height:320px;"></div>
+</div>
+</div>
+</div>
 </div>
 </div>
 <p>
@@ -192,7 +180,8 @@ pbase <- ggmap(map) +
   theme_bw() +
   theme(
     axis.title.x = element_blank(),
-    axis.title.y = element_blank()
+    axis.title.y = element_blank(),
+    plot.background = element_rect(fill = 'transparent', color = NA)
   )
 </script>
  
@@ -258,19 +247,6 @@ prdseries <- reactive({
   mod <- mod()
   ylb <- ylb()
   
-  out <- show_prdseries(mod, ylab = ylb, base_size = bssz)
-  
-  return(out)
-  
-})
-
-# series plot
-prdseries <- reactive({
-  
-  # inputs
-  mod <- mod()
-  ylb <- ylb()
-  
   out <- show_prdseries(mod, ylab = ylb, base_size = bssz) + 
     labs(
       title = "GAM fit",
@@ -293,10 +269,6 @@ mettrndseason <- reactive({
   wnty <- input$wnty
 
   req(dytr)
-
-  # add explicit quotes for parse
-  ylb <- paste0('\"', ylb, '\"')
-  wnty <- paste0('\"', wnty, '\"')
   
   # use ave if metsel is mean
   useave <- F
@@ -304,11 +276,9 @@ mettrndseason <- reactive({
     useave <- T
 
   # plot
-  out <- paste0('show_mettrndseason(mod, metsel = ', metsel, ', doystr = ', dytr[1], ', doyend = ', dytr[2], ', win = ', wntr,
-    ', justify = ', wnty, ', ylab = ', ylb, ', nsim = 1e3, na.rm = TRUE, useave = ', useave,
-    ', base_size = ', bssz, ')')
-
-  out <- eval(parse(text = out))
+  out <- show_mettrndseason(mod, metsel = eval(parse(text = metsel)), doystr = dytr[1], doyend = dytr[2], win = wntr,
+    justify = wnty, ylab = ylb, nsim = 1e3, na.rm = TRUE, useave = useave,
+    base_size = bssz)
 
   return(out)
 
@@ -327,10 +297,6 @@ metseason <- reactive({
   wnty <- input$wnty
 
   req(yrtr)
-
-  # add explicit quotes for parse
-  ylb <- paste0('\"', ylb, '\"')
-  wnty <- paste0('\"', wnty, '\"')
   
   # use ave if metsel is mean
   useave <- F
@@ -339,12 +305,9 @@ metseason <- reactive({
 
   out <- try({
 
-    toprs <- paste0('show_metseason(mod, metsel = ', metsel, ', doystr = ', dytr[1], ', doyend = ', dytr[2], ', win = ', wntr,
-      ', justify = ', wnty, ', ylab = ', ylb, ', yrstr = ', yrtr[1], ', yrend = ', yrtr[2], ', nsim = 1e3, na.rm = TRUE, useave = ', useave,
-      ', base_size = ', bssz, ')')
-
-
-    eval(parse(text = toprs))
+    show_metseason(mod, metsel = eval(parse(text = metsel)), doystr = dytr[1], doyend = dytr[2], win = wntr,
+      justify = wnty, ylab = ylb, yrstr = yrtr[1], yrend = yrtr[2], nsim = 1e3, na.rm = TRUE, useave = useave,
+      base_size = bssz)
 
     })
 

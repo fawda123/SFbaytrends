@@ -3,8 +3,6 @@ title: "Trend Analysis: South Bay"
 format: 
   html:
     page-layout: full
-    grid:
-      margin-width: 450px
 server: shiny
 
 execute:
@@ -40,7 +38,8 @@ pbase <- ggmap(map) +
   theme_bw() +
   theme(
     axis.title.x = element_blank(),
-    axis.title.y = element_blank()
+    axis.title.y = element_blank(),
+    plot.background = element_rect(fill = 'transparent', color = NA)
   )
 ```
 
@@ -107,19 +106,6 @@ prdseries <- reactive({
   mod <- mod()
   ylb <- ylb()
   
-  out <- show_prdseries(mod, ylab = ylb, base_size = bssz)
-  
-  return(out)
-  
-})
-
-# series plot
-prdseries <- reactive({
-  
-  # inputs
-  mod <- mod()
-  ylb <- ylb()
-  
   out <- show_prdseries(mod, ylab = ylb, base_size = bssz) + 
     labs(
       title = "GAM fit",
@@ -142,10 +128,6 @@ mettrndseason <- reactive({
   wnty <- input$wnty
 
   req(dytr)
-
-  # add explicit quotes for parse
-  ylb <- paste0('\"', ylb, '\"')
-  wnty <- paste0('\"', wnty, '\"')
   
   # use ave if metsel is mean
   useave <- F
@@ -153,11 +135,9 @@ mettrndseason <- reactive({
     useave <- T
 
   # plot
-  out <- paste0('show_mettrndseason(mod, metsel = ', metsel, ', doystr = ', dytr[1], ', doyend = ', dytr[2], ', win = ', wntr,
-    ', justify = ', wnty, ', ylab = ', ylb, ', nsim = 1e3, na.rm = TRUE, useave = ', useave,
-    ', base_size = ', bssz, ')')
-
-  out <- eval(parse(text = out))
+  out <- show_mettrndseason(mod, metsel = eval(parse(text = metsel)), doystr = dytr[1], doyend = dytr[2], win = wntr,
+    justify = wnty, ylab = ylb, nsim = 1e3, na.rm = TRUE, useave = useave,
+    base_size = bssz)
 
   return(out)
 
@@ -176,10 +156,6 @@ metseason <- reactive({
   wnty <- input$wnty
 
   req(yrtr)
-
-  # add explicit quotes for parse
-  ylb <- paste0('\"', ylb, '\"')
-  wnty <- paste0('\"', wnty, '\"')
   
   # use ave if metsel is mean
   useave <- F
@@ -188,12 +164,9 @@ metseason <- reactive({
 
   out <- try({
 
-    toprs <- paste0('show_metseason(mod, metsel = ', metsel, ', doystr = ', dytr[1], ', doyend = ', dytr[2], ', win = ', wntr,
-      ', justify = ', wnty, ', ylab = ', ylb, ', yrstr = ', yrtr[1], ', yrend = ', yrtr[2], ', nsim = 1e3, na.rm = TRUE, useave = ', useave,
-      ', base_size = ', bssz, ')')
-
-
-    eval(parse(text = toprs))
+    show_metseason(mod, metsel = eval(parse(text = metsel)), doystr = dytr[1], doyend = dytr[2], win = wntr,
+      justify = wnty, ylab = ylb, yrstr = yrtr[1], yrend = yrtr[2], nsim = 1e3, na.rm = TRUE, useave = useave,
+      base_size = bssz)
 
     })
 
@@ -223,35 +196,20 @@ output$yrtr <- renderUI({
 
 This application uses data from long-term USGS water quality monitoring in San Francisco Bay ([Cloern and Schraga 2016](https://doi.org/10.5066/F7TQ5ZPR){target="_blank"}; [Schraga and Cloern 2017](https://doi.org/10.1038/sdata.2017.98){target="_blank"}; [Schraga et al. 2020](https://doi.org/10.5066/F7D21WGF){target="_blank"}). Additional background details on the GAM, mixed-effects meta-analysis approach are presented in [Beck et al (2022)](https://doi.org/10.1016/j.scitotenv.2021.149927){target="_blank"}.
 
-::: {.column-margin}
 ```{r}
+#| panel: sidebar
 plotOutput('mapselplo')
-```
-<br>
-```{r}
 selectInput("station", "Choose station:", sort(unique(datprc$station)), width = '100%')
-```
-```{r}
 selectInput("parameter", "Choose parameter:", choices = params, width = '100%')
-```
-```{r}
 sliderInput('dytr', 'Select day-of-year for season:', min = 1, max = 365, value = c(213, 304), width = '100%')
-```
-```{r}
-selectInput('metsel', 'Select summary metric:', choices = c('mean', 'min', 'max', 'var'), selected = 'mean', width = '100%')
-```
-```{r}
+selectInput('metsel', 'Select summary metric:', choices = c('mean', 'min', 'max', 'var'), width = '100%')
 uiOutput('yrtr')
-```
-```{r}
 selectInput('wnty', 'Select window type:', choices = c('left', 'right', 'center'), width = '100%')
-```
-```{r}
 sliderInput('wntr', 'Select window size:', min = 2, max = 20, value = 10, width = '100%')
 ```
-:::
 
 ```{r}
+#| panel: fill
 plotOutput('prdseries', height = 320)
 plotOutput('mettrndseason', height = 370)
 plotOutput('metseason', height = 320)
