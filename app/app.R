@@ -21,7 +21,7 @@ params <- list(
 )
 
 scaledig <- function(x) sprintf("%.1f", x)
-bssz <- 18
+bssz <- 17
 
 pbase <- ggmap(map) +
   theme_bw() +
