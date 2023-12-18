@@ -178,6 +178,9 @@ server <- function(input, output, session){
     if(is.null(yrrng))
       yrrng <- yrs
     
+    if(is.null(yrtr))
+      yrtr <- c(1995, 2004)
+    
     # use ave if metsel is mean
     useave <- F
     if(metsel == 'mean')
@@ -211,13 +214,13 @@ server <- function(input, output, session){
   output$yrrng <- renderUI({
 
     yrs <- yrs()      
-    sliderInput('yrrng', 'Select year range (all):', min = yrs[1], max = yrs[2], value = yrs, sep = "", step = 1, width = '100%')
+    sliderInput('yrrng', 'Plot year range (all):', min = yrs[1], max = yrs[2], value = yrs, sep = "", step = 1, width = '100%')
     
   })
   output$yrtr <- renderUI({
     
     yrs <- yrs()
-    sliderInput('yrtr', 'Select window size (middle) and years for trend (bottom):', min = yrs[1], max = yrs[2], value = c(1995, 2004), sep = "", step = 1, width = '100%')
+    sliderInput('yrtr', 'Window size (middle) and years for trend (bottom):', min = yrs[1], max = yrs[2], value = c(1995, 2004), sep = "", step = 1, width = '100%')
     
   })
 
@@ -225,36 +228,28 @@ server <- function(input, output, session){
 
 ui <- fluidPage(
   
-  tags$head(tags$style(
-    HTML('
-         #sidebar {
-            background-color: #ffffff;
-            border: 2px solid #ffffff;
-        }
-        ')
-  )),
+  # changes overall page width
+  tags$head(tags$style(type="text/css", ".container-fluid {  max-width: 1200px;};")),
   
-  titlePanel("Water quality trends in San Francisco Bay"),
+  titlePanel("Water quality trends in south San Francisco Bay"),
   
   p(HTML('This application uses data from long-term USGS water quality monitoring in San Francisco Bay (<a href="https://doi.org/10.5066/F7TQ5ZPR" target="_blank">Cloern and Schraga 2016</a>; <a href="https://doi.org/10.1038/sdata.2017.98" target="_blank">Schraga and Cloern 2017</a>; <a href="https://doi.org/10.5066/F7D21WGF" target="_blank">Schraga et al. 2020</a>). Additional background details on the GAM, mixed-effects meta-analysis approach are presented in <a href="https://doi.org/10.1016/j.scitotenv.2021.149927" target="_blank">Beck et al (2022)</a>.')),
-  
-  sidebarLayout(
-    sidebarPanel(
-      id = 'sidebar',
+
+  column(12, 
+    column(4,
       addSpinner(plotOutput('mapselplo')),
-      selectInput("station", "Choose station (all):", sort(unique(datprc$station)), width = '100%'),
-      selectInput("parameter", "Choose parameter (all):", choices = params, width = '100%'),
+      actionButton('submit', 'Submit', width = '100%', style = 'color: white; background-color: rgb(66, 139, 202);'),
+      selectInput("station", "Station (all):", sort(unique(datprc$station)), width = '100%'),
+      selectInput("parameter", "Parameter (all):", choices = params, width = '100%'),
+      selectInput('wnty', 'Window type (middle):', choices = c('left', 'right', 'center'), width = '100%'),
+      selectInput('metsel', 'Summary metric (middle, bottom):', choices = c('mean', 'min', 'max', 'var'), width = '100%'),
       uiOutput('yrrng'),
-      selectInput('wnty', 'Select window type (middle):', choices = c('left', 'right', 'center'), width = '100%'),
-      sliderInput('dytr', 'Select season (middle, bottom):', min = 1, max = 365, value = c(213, 304), width = '100%'),
-      selectInput('metsel', 'Select summary metric (middle, bottom):', choices = c('mean', 'min', 'max', 'var'), width = '100%'),
       uiOutput('yrtr'),
-      actionButton('submit', 'Submit', width = '100%'),
-      width = 3
+      sliderInput('dytr', 'Season (middle, bottom):', min = 1, max = 365, value = c(213, 304), width = '100%')
     ),
-    mainPanel(
+    column(8,
       addSpinner(plotOutput('prdseries', height = 320)),
-      addSpinner(plotOutput('mettrndseason', height = 370)),
+      addSpinner(plotOutput('mettrndseason', height = 390)),
       addSpinner(plotOutput('metseason', height = 320))
     )
   )
