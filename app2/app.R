@@ -7,9 +7,9 @@ library(dplyr)
 library(here)
 library(shinyWidgets)
 
-load(file = here('data', 'datprc.RData'))
-load(file = here('data', 'locs.RData'))
-load(file = here('data', 'map.RData'))
+load(file = here('data/datprc.RData'))
+load(file = here('data/locs.RData'))
+load(file = here('data/map.RData'))
 
 params <- list(
   'Chlorophyll-a (ug/L)' = 'chl',

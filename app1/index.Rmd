@@ -19,17 +19,17 @@ library(tidyverse)
 library(lubridate)
 library(shiny)
 library(wqtrends)
-# devtools::load_all('T:/04_STAFF/MARCUS/03_GIT/wqtrends')
 library(ggmap)
 library(mgcv)
 library(plotly)
 library(gridExtra)
 library(shinycssloaders)
-source('R/funcs.R')
+library(here)
+source(here('R/funcs.R'))
 
-data(datprc)
-data(locs)
-data(map)
+load(file = here('data/datprc.RData'))
+load(file = here('data/locs.RData'))
+load(file = here('data/map.RData'))
 
 params <- list(
   'Chlorophyll-a (ug/L)' = 'chl', 
@@ -119,7 +119,7 @@ mod <- reactive({
   station <- input$station
   
   fl <- paste0('mods_', parameter, station)
-  load(file = paste0('data/', fl, '.RData'))
+  load(file = here(paste0('data/', fl, '.RData')))
  
   out <- get(fl) %>% 
     ungroup() %>%
