@@ -133,7 +133,7 @@ server <- function(input, output, session){
     mod <- mod()
     ylb <- ylb()
     metsel <- input$metsel
-    yrtr <- input$yrtr
+    wntr <- input$wntr
     wnty <- input$wnty
     
     req(mod)
@@ -142,8 +142,6 @@ server <- function(input, output, session){
     if(metsel == 'mean')
       useave <- T
   
-    wntr <- yrtr[2] - yrtr[1] + 1
-
     if(is.null(yrrng))
       yrrng <- yrs
     
@@ -163,23 +161,21 @@ server <- function(input, output, session){
   }, ignoreNULL = FALSE)
   
   # seasonal averages
-  metseason <- eventReactive(input$submit, {
+  trndseason <- eventReactive(input$submit, {
   
     # inputs
     yrs <- yrs()
     yrrng <- input$yrrng
     dytr <- input$dytr
-    yrtr <- input$yrtr
     mod <- mod()
     ylb <- ylb()
     metsel <- input$metsel
+    wntr <- input$wntr
+    wnty <- input$wnty
   
     if(is.null(yrrng))
       yrrng <- yrs
-    
-    if(is.null(yrtr))
-      yrtr <- c(1995, 2004)
-    
+  
     # use ave if metsel is mean
     useave <- F
     if(metsel == 'mean')
@@ -187,8 +183,8 @@ server <- function(input, output, session){
 
     out <- try({
 
-      toprs <- paste0('show_metseason(mod, metfun = ', metsel, ', doystr = ', dytr[1], ', doyend = ', dytr[2], ', yrstr = ', 
-                      yrtr[1], ', yrend = ', yrtr[2], ', ylab = "', ylb, '", nsim = 1e3, na.rm = TRUE, width = 0.6, 
+      toprs <- paste0('show_trndseason(mod, metfun = ', metsel, ', doystr = ', dytr[1], ', doyend = ', dytr[2], 
+                      ', ylab = "', ylb, '", nsim = 1e3, usearrow = T, win = ', wntr, ', justify = "', wnty, '",
                       useave = ', useave, ', base_size = ', bssz, ', xlim = c(', yrrng[1], ', ', yrrng[2], '))')
       
       eval(parse(text = toprs))
@@ -209,17 +205,11 @@ server <- function(input, output, session){
   output$mapselplo <- renderPlot(mapselplo())
   output$prdseries <- renderPlot(prdseries())
   output$mettrndseason <- renderPlot(mettrndseason())
-  output$metseason <- renderPlot(metseason())
+  output$trndseason <- renderPlot(trndseason())
   output$yrrng <- renderUI({
 
     yrs <- yrs()      
     sliderInput('yrrng', 'Plot year range (all):', min = yrs[1], max = yrs[2], value = yrs, sep = "", step = 1, width = '100%')
-    
-  })
-  output$yrtr <- renderUI({
-    
-    yrs <- yrs()
-    sliderInput('yrtr', 'Window size (middle) and years for trend (bottom):', min = yrs[1], max = yrs[2], value = c(1995, 2004), sep = "", step = 1, width = '100%')
     
   })
 
@@ -240,16 +230,16 @@ ui <- fluidPage(
       actionButton('submit', 'Submit', width = '100%', style = 'color: white; background-color: rgb(66, 139, 202);'),
       selectInput("station", "Station (all):", sort(unique(datprc$station)), width = '100%'),
       selectInput("parameter", "Parameter (all):", choices = params, width = '100%'),
-      selectInput('wnty', 'Window type (middle):', choices = c('left', 'right', 'center'), width = '100%'),
+      selectInput('wnty', 'Window type (middle, bottom):', choices = c('right', 'left', 'center'), width = '100%'),
       selectInput('metsel', 'Summary metric (middle, bottom):', choices = c('mean', 'min', 'max', 'var'), width = '100%'),
       uiOutput('yrrng'),
-      uiOutput('yrtr'),
+      sliderInput('wntr', 'Window size (middle, bottom):', min = 2, max = 25, value = 10, sep = "", step = 1, width = '100%'),
       sliderInput('dytr', 'Season (middle, bottom):', min = 1, max = 365, value = c(213, 304), width = '100%')
     ),
     column(8,
       addSpinner(plotOutput('prdseries', height = 320)),
       addSpinner(plotOutput('mettrndseason', height = 390)),
-      addSpinner(plotOutput('metseason', height = 320))
+      addSpinner(plotOutput('trndseason', height = 320))
     )
   )
 )

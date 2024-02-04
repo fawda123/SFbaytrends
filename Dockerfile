@@ -27,6 +27,7 @@ RUN R -e "install.packages('plotly', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('gridExtra', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('shinycssloaders', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('here', repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages('flexdashboard', repos='http://cran.rstudio.com/')"
 
 # select port
 EXPOSE 3838
