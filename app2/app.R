@@ -184,7 +184,7 @@ server <- function(input, output, session){
     out <- try({
 
       toprs <- paste0('show_trndseason(mod, metfun = ', metsel, ', doystr = ', dytr[1], ', doyend = ', dytr[2], 
-                      ', ylab = "', ylb, '", nsim = 1e3, usearrow = T, win = ', wntr, ', justify = "', wnty, '",
+                      ', ylab = "', ylb, '", nsim = 1e3, win = ', wntr, ', justify = "', wnty, '",
                       useave = ', useave, ', base_size = ', bssz, ', xlim = c(', yrrng[1], ', ', yrrng[2], '))')
       
       eval(parse(text = toprs))
