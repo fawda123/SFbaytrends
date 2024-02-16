@@ -19,6 +19,7 @@ chlraw <- read.csv('data/raw/sfb_surf_CB_SB_LSB.csv', stringsAsFactors = F)
 gppraw <- read.csv('data/raw/sfb_GPP_monthly.csv', stringsAsFactors = F) 
 doraw <- read.csv('data/raw/CB_SB_LSB_depthavg_O2.csv', stringsAsFactors = F)
 sscraw <- read.csv('data/raw/Dumbarton_BridgeProcessed_15min.csv', stringsAsFactors = F)
+dinraw <- read.csv('data/raw/1_datadf_CBSBLSB_DIN.csv', stringsAsFactors = F)
 
 # get chlorophyll as ug l-1
 chldat <- chlraw %>% 
@@ -97,10 +98,25 @@ sscdat <- sscraw %>%
   summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE))) %>%
   rename(ssc = value) 
 
+# get din dat as uM
+dindat <- dinraw %>% 
+  select(date, station, din) %>% 
+  gather('param', 'value', -date, -station) %>% 
+  mutate(
+    date = ymd(date),
+    doy = yday(date), 
+    cont_year = decimal_date(date),
+    yr = year(date),
+    mo = month(date, label = T),
+    param = tolower(param)
+  ) %>% 
+  filter(!is.na(value))
+
 # combine new do ests, gpp with datprc
-datprc <- bind_rows(chldat, gppdat, dodat, kddat) %>% 
+datprc <- bind_rows(chldat, gppdat, dodat, kddat, dindat) %>% 
   arrange(station, param, date) %>% 
   filter(yr <= 2019)
+
 datprc <- merge(datprc, sscdat)
 
 # find the most recent year with less than five observations
