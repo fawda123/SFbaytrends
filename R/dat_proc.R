@@ -18,7 +18,7 @@ save(locs, file = 'data/locs.RData', compress = 'xz')
 chlraw <- read.csv('data/raw/sfb_surf_CB_SB_LSB.csv', stringsAsFactors = F)
 gppraw <- read.csv('data/raw/sfb_GPP_monthly.csv', stringsAsFactors = F) 
 doraw <- read.csv('data/raw/CB_SB_LSB_depthavg_O2.csv', stringsAsFactors = F)
-sscraw <- read.csv('data/raw/Dumbarton_BridgeProcessed_15min.csv', stringsAsFactors = F)
+# sscraw <- read.csv('data/raw/Dumbarton_BridgeProcessed_15min.csv', stringsAsFactors = F)
 dinraw <- read.csv('data/raw/1_datadf_CBSBLSB_DIN.csv', stringsAsFactors = F)
 
 # get chlorophyll as ug l-1
@@ -83,20 +83,20 @@ dodat <- doraw %>%
   ) %>% 
   filter(!is.na(value))
 
-# get SSC as mg/L
-sscdat <- sscraw %>% 
-  select(ts_pst, ssc = ssc_mgL) %>% 
-  mutate(
-    ts_pst = mdy_hm(ts_pst, tz = "America/Los_Angeles")
-  ) %>% 
-  gather('param', 'value', -ts_pst) %>% 
-  mutate(
-    date = date(ts_pst)
-  ) %>% 
-  filter(!is.na(value))%>%
-  group_by(date) %>%
-  summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE))) %>%
-  rename(ssc = value) 
+# # get SSC as mg/L
+# sscdat <- sscraw %>% 
+#   select(ts_pst, ssc = ssc_mgL) %>% 
+#   mutate(
+#     ts_pst = mdy_hm(ts_pst, tz = "America/Los_Angeles")
+#   ) %>% 
+#   gather('param', 'value', -ts_pst) %>% 
+#   mutate(
+#     date = date(ts_pst)
+#   ) %>% 
+#   filter(!is.na(value))%>%
+#   group_by(date) %>%
+#   summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE))) %>%
+#   rename(ssc = value) 
 
 # get din dat as uM
 dindat <- dinraw %>% 
@@ -115,40 +115,47 @@ dindat <- dinraw %>%
 # combine new do ests, gpp with datprc
 datprc <- bind_rows(chldat, gppdat, dodat, kddat, dindat) %>% 
   arrange(station, param, date) %>% 
-  filter(yr <= 2019)
+  filter(yr > 1982 & yr <= 2019) %>% # 1982 is approximate year when most parameters have enough
+  filter(!(yr < 1990 & param == 'din')) # remove any din data prior to 1990
 
-datprc <- merge(datprc, sscdat)
+# # find the most recent year with less than five observations
+# # defaults to last year if all have at least five
+# yrflt <- datprc %>% 
+#   group_by(station, param, yr) %>% 
+#   summarise(cnt = n(), .groups= 'drop') %>% 
+#   group_by(station, param) %>% 
+#   arrange(station, param, -yr) %>% 
+#   mutate(
+#     thrsh = cnt < 5, 
+#     thrsh = cumsum(thrsh),
+#     toflt = case_when(
+#       thrsh == 1 & !duplicated(thrsh) ~ T,
+#       sum(thrsh) == 0 ~ c(rep(NA, length(thrsh) -1), T)
+#     )
+#   ) %>% 
+#   na.omit() %>% 
+#   ungroup() %>% 
+#   select(station, param, exclyr = yr)
+# 
+# # dont filter any din years
+# yrflt <- yrflt %>% 
+#   mutate(
+#     exclyr = ifelse(param == 'din', 1900, exclyr)
+#   )
 
-# find the most recent year with less than five observations
-# defaults to last year if all have at least five
-yrflt <- datprc %>% 
-  group_by(station, param, yr) %>% 
-  summarise(cnt = n(), .groups= 'drop') %>% 
-  group_by(station, param) %>% 
-  arrange(station, param, -yr) %>% 
-  mutate(
-    thrsh = cnt < 5, 
-    thrsh = cumsum(thrsh),
-    toflt = case_when(
-      thrsh == 1 & !duplicated(thrsh) ~ T,
-      sum(thrsh) == 0 ~ c(rep(NA, length(thrsh) -1), T)
-    )
-  ) %>% 
-  na.omit() %>% 
-  ungroup() %>% 
-  select(station, param, exclyr = yr)
+# # join with min year for filter
+# datprc <- datprc %>%
+#   left_join(yrflt, by = c('station', 'param')) %>%
+#   filter(yr > exclyr | yr > 1982) %>% # 1982 is just a brute force fix
+#   select(-exclyr)
 
-# join with min year for filter
-datprc <- datprc %>%
-  left_join(yrflt, by = c('station', 'param')) %>%
-  filter(yr > exclyr) %>%
-  select(-exclyr)
-
-# # combine new do ests, gpp with datprc
+# # combine new do ests, gpp with datprc, for ssc branch?
 # datprc <- bind_rows(chldat, gppdat, dodat) %>%
 #   filter(yr >= 1990 & yr <= 2019) %>%
 #   arrange(station, param, date)
-# 
+#
+# datprc <- merge(datprc, sscdat)
+#
 # rawdat <- datprc
 # save(rawdat, file = '../wqtrends/data/rawdat.RData', compress = 'xz')
 # save(sscdat, file = '../wqtrends/data/sscdat.RData', compress = 'xz')
@@ -162,7 +169,7 @@ data(datprc)
 # data to model, same as datprc, params in wide format, nested by station
 # crossed with frms
 tomod <- datprc %>% 
-  filter(param %in% c('chl', 'do', 'dosat', 'gpp', 'kd')) %>% # add parameters here
+  filter(param %in% c('chl', 'do', 'dosat', 'gpp', 'kd', 'din')) %>% # add parameters here
   group_by(station, param) %>% 
   nest %>% 
   mutate(

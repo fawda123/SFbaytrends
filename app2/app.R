@@ -16,7 +16,8 @@ params <- list(
   'GPP (mg C m-2 d-1)' = 'gpp',
   'DO (mg/L)' = 'do',
   'DO sat. (%)' = 'dosat',
-  'Kd (m-1)' = 'kd'
+  'Kd (m-1)' = 'kd',
+  'DIN (uM)' = 'din'
 )
 
 scaledig <- function(x) sprintf("%.1f", x)
