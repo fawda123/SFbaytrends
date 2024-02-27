@@ -10,8 +10,12 @@ RUN apt-get update && apt-get install -y \
   libcairo2-dev \
   libxt-dev \
   libssl-dev \
-  libssh2-1-dev 
-
+  libssh2-1-dev \
+  libgdal-dev \
+  libproj-dev \
+  libgeos-dev \
+  libudunits2-dev \
+  netcdf-bin
 
 # install R packages required 
 RUN R -e "install.packages('remotes', repos='http://cran.rstudio.com/')"
@@ -19,8 +23,6 @@ RUN R -e "remotes::install_github('tbep-tech/wqtrends', upgrade = 'never')"
 RUN R -e "install.packages('shiny', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('rmarkdown', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('tidyverse', repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('raster', repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('terra', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('leaflet', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('lubridate', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('ggmap', repos='http://cran.rstudio.com/')"
