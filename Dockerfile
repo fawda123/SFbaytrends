@@ -32,7 +32,7 @@ RUN R -e "install.packages('plotly', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('gridExtra', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('shinycssloaders', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('here', repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages('flexdashboard', repos='http://cran.rstudio.com/')"
+RUN R -e "remotes::install_version('flexdashboard', '0.5.2')"
 
 # select port
 EXPOSE 3838
