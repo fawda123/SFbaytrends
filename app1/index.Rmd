@@ -2,7 +2,7 @@
 title: "GAM evaluation - SF South Bay"
 output: 
   html_document:
-    css: kable.css
+    css: styles.css
     includes: 
       in_header: ["cssloaders_in_header.html", "google-analytics.html"]
 self_contained: yes
@@ -59,6 +59,7 @@ mapselplo <- reactive({
   # inputs
   station <- input$station
   parameter <- input$parameter
+  mod <- mod()
   typ <- input$typ
   ylb <- ylb()
 
@@ -120,7 +121,13 @@ mod <- reactive({
   station <- input$station
   
   fl <- paste0('mods_', parameter, station)
-  load(file = here(paste0('data/', fl, '.RData')))
+  pth <- here(paste0('data/', fl, '.RData'))
+  
+  validate(
+    need(file.exists(pth), "No model available")
+  )
+    
+  load(file = here(pth))
  
   out <- get(fl) %>% 
     ungroup() %>%

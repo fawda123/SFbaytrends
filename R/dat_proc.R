@@ -15,11 +15,14 @@ save(locs, file = 'data/locs.RData', compress = 'xz')
 # format raw wq data for use with wqtrends --------------------------------
 
 # all raw files from DS
+# DIN from here https://drive.google.com/drive/folders/1lCQMOPTvDHuOBzOw5FBNNk0ft1ki4BM_
+# for parameter, station specific date ranges and year removals, see notes here:
+# 2/22/2024 https://docs.google.com/document/d/19nugFVa8bMyQX_hSnhP8JM8ztbvwbBJKIO0sHXkzE6c/edit#heading=h.bamc4fmfdoa8
 chlraw <- read.csv('data/raw/sfb_surf_CB_SB_LSB.csv', stringsAsFactors = F)
 gppraw <- read.csv('data/raw/sfb_GPP_monthly.csv', stringsAsFactors = F) 
 doraw <- read.csv('data/raw/CB_SB_LSB_depthavg_O2.csv', stringsAsFactors = F)
 # sscraw <- read.csv('data/raw/Dumbarton_BridgeProcessed_15min.csv', stringsAsFactors = F)
-dinraw <- read.csv('data/raw/1_datadf_CBSBLSB_DIN.csv', stringsAsFactors = F)
+dinraw <- read.csv('data/raw/datprc_DIN_CBSBLSB_clean.csv', stringsAsFactors = F)
 
 # get chlorophyll as ug l-1
 chldat <- chlraw %>% 
@@ -33,7 +36,10 @@ chldat <- chlraw %>%
     mo = month(date, label = T),
     param = tolower(param)
   ) %>% 
-  filter(!is.na(value))
+  filter(!is.na(value)) %>% 
+  filter(!(station == 18 & yr < 1990)) %>% 
+  filter(!(station %in% c(21, 22, 24, 27, 30, 32) & yr < 1983)) %>% 
+  filter(!(station %in% c(34, 36) & yr < 1992))
 
 # get gpp as mg C m-2 d-1
 gppdat <- gppraw %>% 
@@ -50,7 +56,10 @@ gppdat <- gppraw %>%
   ) %>% 
   gather('param', 'value', gpp) %>% 
   select(date, station, param, value, doy, cont_year, yr, mo) %>% 
-  filter(!is.na(value))
+  filter(!is.na(value)) %>% 
+  filter(!(station == 18 & yr < 1990)) %>% 
+  filter(!(station %in% c(21, 22, 24, 27, 30, 32) & yr < 1983)) %>% 
+  filter(!(station %in% c(34, 36) & yr < 1992))
 
 # light attenuation as m-1
 kddat <- gppraw %>% 
@@ -67,7 +76,10 @@ kddat <- gppraw %>%
   ) %>% 
   gather('param', 'value', kd) %>% 
   select(date, station, param, value, doy, cont_year, yr, mo) %>% 
-  filter(!is.na(value))
+  filter(!is.na(value)) %>% 
+  filter(!(station == 18 & yr < 1990)) %>% 
+  filter(!(station %in% c(21, 22, 24, 27, 30, 32) & yr < 1983)) %>% 
+  filter(!(station %in% c(34, 36) & yr < 1992))
 
 # get depth-averaged do (mg/l and % sat)
 dodat <- doraw %>% 
@@ -81,7 +93,8 @@ dodat <- doraw %>%
     mo = month(date, label = T),
     param = tolower(param)
   ) %>% 
-  filter(!is.na(value))
+  filter(!is.na(value)) %>% 
+  filter(yr >= 1993)
 
 # # get SSC as mg/L
 # sscdat <- sscraw %>% 
@@ -98,9 +111,9 @@ dodat <- doraw %>%
 #   summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE))) %>%
 #   rename(ssc = value) 
 
-# get din dat as uM
+# get din dat as uM, problematic dates already removed
 dindat <- dinraw %>% 
-  select(date, station, din) %>% 
+  select(date, station, din = value) %>% 
   gather('param', 'value', -date, -station) %>% 
   mutate(
     date = ymd(date),
@@ -110,13 +123,12 @@ dindat <- dinraw %>%
     mo = month(date, label = T),
     param = tolower(param)
   ) %>% 
+  filter(yr < 2022) %>% 
   filter(!is.na(value))
 
 # combine new do ests, gpp with datprc
 datprc <- bind_rows(chldat, gppdat, dodat, kddat, dindat) %>% 
-  arrange(station, param, date) %>% 
-  filter(yr > 1982 & yr <= 2019) %>% # 1982 is approximate year when most parameters have enough
-  filter(!(yr < 1990 & param == 'din')) # remove any din data prior to 1990
+  arrange(station, param, date)
 
 # # find the most recent year with less than five observations
 # # defaults to last year if all have at least five

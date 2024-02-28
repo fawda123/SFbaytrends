@@ -5,7 +5,7 @@ library(ggmap)
 library(lubridate)
 library(dplyr)
 library(here)
-library(shinyWidgets)
+library(shinycssloaders)
 
 load(file = here('data/datprc.RData'))
 load(file = here('data/locs.RData'))
@@ -65,7 +65,13 @@ server <- function(input, output, session){
     station <- input$station
   
     fl <- paste0('mods_', parameter, station)
-    load(file = here(paste0('data/', fl, '.RData')))
+    pth <- here(paste0('data/', fl, '.RData'))
+    
+    validate(
+      need(file.exists(pth), "No model available")
+    )
+    
+    load(file = here(pth))
   
     out <- get(fl) %>%
       .$modi %>% 
@@ -80,7 +86,9 @@ server <- function(input, output, session){
     
     mod <- mod()
     
-    req(mod)
+    validate(
+      need(!is.null(mod), "No model available")
+    )
     
     yrs <- mod$model %>% pull(cont_year) %>% date_decimal(.) %>% year %>% range()
     
@@ -108,6 +116,10 @@ server <- function(input, output, session){
     mod <- mod()
     ylb <- ylb()
     yrrng <- input$yrrng
+    
+    validate(
+      need(!is.null(mod), "No model available")
+    )
     
     if(is.null(yrrng))
       yrrng <- yrs
@@ -137,7 +149,10 @@ server <- function(input, output, session){
     wntr <- input$wntr
     wnty <- input$wnty
     
-    req(mod)
+    validate(
+      need(!is.null(mod), "No model available")
+    )
+    
     # use ave if metsel is mean
     useave <- F
     if(metsel == 'mean')
@@ -174,6 +189,10 @@ server <- function(input, output, session){
     wntr <- input$wntr
     wnty <- input$wnty
   
+    validate(
+      need(!is.null(mod), "No model available")
+    )
+    
     if(is.null(yrrng))
       yrrng <- yrs
   
@@ -218,8 +237,10 @@ server <- function(input, output, session){
 
 ui <- fluidPage(
   
-  # changes overall page width
-  tags$head(tags$style(type="text/css", ".container-fluid {  max-width: 1200px;};")),
+  # style file
+  tags$head(
+    tags$link(rel = "stylesheet", type = "text/css", href = "styles.css")
+  ),
   
   titlePanel("Water quality trends in south San Francisco Bay"),
   
@@ -227,7 +248,7 @@ ui <- fluidPage(
 
   column(12, 
     column(4,
-      addSpinner(plotOutput('mapselplo')),
+      withSpinner(plotOutput('mapselplo')),
       actionButton('submit', 'Submit', width = '100%', style = 'color: white; background-color: rgb(66, 139, 202);'),
       selectInput("station", "Station (all):", sort(unique(datprc$station)), width = '100%'),
       selectInput("parameter", "Parameter (all):", choices = params, width = '100%'),
@@ -238,9 +259,9 @@ ui <- fluidPage(
       sliderInput('dytr', 'Season (middle, bottom):', min = 1, max = 365, value = c(213, 304), width = '100%')
     ),
     column(8,
-      addSpinner(plotOutput('prdseries', height = 320)),
-      addSpinner(plotOutput('mettrndseason', height = 390)),
-      addSpinner(plotOutput('trndseason', height = 320))
+      withSpinner(plotOutput('prdseries', height = 320)),
+      withSpinner(plotOutput('mettrndseason', height = 390)),
+      withSpinner(plotOutput('trndseason', height = 320))
     )
   )
 )

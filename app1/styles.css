@@ -1,0 +1,40 @@
+
+.verysmall .table{
+font-size: 11px;
+}
+
+.smallagain .table{
+font-size: 8px;
+}
+
+/* styles.css */
+.navbar-default {
+  background-color: #0779bf; /* Replace with your desired color code */
+  border-color: #0779bf; /* Replace with your desired color code */
+}
+
+.navbar-default .navbar-nav > li > a {
+  color: #fff; /* Change text color to white */
+}
+
+.navbar-default .navbar-nav > .active > a,
+.navbar-default .navbar-nav > .active > a:hover,
+.navbar-default .navbar-nav > .active > a:focus {
+  background-color: #87CEEB; /* Change to your desired light blue color code */
+  color: #fff; /* Change to your desired text color for the selected tab */
+}
+
+.navbar-default .navbar-brand {
+  color: #fff; /* Replace with your desired color code */
+}
+
+.navbar {
+        position: relative;
+        z-index: 1; /* Ensure navbar is behind the logos */
+		width: 120%; /* Make the navbar extend across the screen */
+      }
+	  
+
+.tab-content {
+        background-color: transparent !important; /* Set the tab content background to transparent */
+      }
