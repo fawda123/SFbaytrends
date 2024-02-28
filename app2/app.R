@@ -235,7 +235,8 @@ server <- function(input, output, session){
 
 }
 
-ui <- fluidPage(
+ui <- function(request) {
+  fluidPage(
   
   # style file
   tags$head(
@@ -245,6 +246,8 @@ ui <- fluidPage(
   titlePanel("Water quality trends in south San Francisco Bay"),
   
   p(HTML('This application uses data from long-term USGS water quality monitoring in San Francisco Bay (<a href="https://doi.org/10.5066/F7TQ5ZPR" target="_blank">Cloern and Schraga 2016</a>; <a href="https://doi.org/10.1038/sdata.2017.98" target="_blank">Schraga and Cloern 2017</a>; <a href="https://doi.org/10.5066/F7D21WGF" target="_blank">Schraga et al. 2020</a>). Additional background details on the GAM, mixed-effects meta-analysis approach are presented in <a href="https://doi.org/10.1016/j.scitotenv.2021.149927" target="_blank">Beck et al (2022)</a>.')),
+  
+  column(12, bookmarkButton()),
 
   column(12, 
     column(4,
@@ -265,5 +268,6 @@ ui <- fluidPage(
     )
   )
 )
-
+}
+enableBookmarking(store = "url")
 shinyApp(ui = ui, server = server)
