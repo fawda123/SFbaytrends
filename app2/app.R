@@ -232,6 +232,32 @@ server <- function(input, output, session){
     sliderInput('yrrng', 'Plot year range (all):', min = yrs[1], max = yrs[2], value = yrs, sep = "", step = 1, width = '100%')
     
   })
+  
+  # make default seasonal range full year if input is GPP, otherwise make it aug to oct
+  observeEvent(input$parameter, {
+    
+    # input
+    parameter <- input$parameter
+    
+    # make default seasonal range full year if input is GPP
+    if(parameter == 'gpp')
+      updateSliderInput(session, 'dytr', value = c(1, 365))
+    else 
+      updateSliderInput(session, 'dytr', value = c(213, 304))
+    
+  })
+  
+  # subembayment map click
+  observeEvent(input$submmap1_marker_click, {
+    
+    # input
+    potwsel2 <- input$submmap1_marker_click$id
+    req(!is.null(potwsel2))
+    submsel1 <- locs %>% filter(POTW == potwsel2) %>% select(sub_name) %>% unique() %>% pull()
+    
+    updateSelectInput(session, 'submsel1', selected = submsel1)
+    
+  })  
 
 }
 
