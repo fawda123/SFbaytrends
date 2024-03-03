@@ -140,6 +140,8 @@ server <- function(input, output, session){
   mettrndseason <- eventReactive(input$submit, {
   
     # inputs
+    station <- input$station
+    parameter <- input$parameter
     yrrng <- input$yrrng
     yrs <- yrs()
     dytr <- input$dytr
@@ -161,12 +163,17 @@ server <- function(input, output, session){
     if(is.null(yrrng))
       yrrng <- yrs
     
+    # special handling of omit years depending on station parameter
+    yromit <- NULL
+    if(station == 32 & parameter %in% c('chl', 'gpp', 'kd'))
+      yromit <- 1990
+    
     # plot
     toprs <- paste0('show_mettrndseason(mod, metfun = ', metsel, ', doystr = ', dytr[1], ', doyend = ', dytr[2], 
                     ', ylab = "', ylb, '", nsim = 1e3, na.rm = TRUE, width = 0.6, size = 4, useave = ', useave, ', 
                     base_size = ', bssz, ', win = ', wntr, ', justify = "', wnty, '",
-                    xlim = c(', yrrng[1], ', ', yrrng[2], '))')
-    
+                    xlim = c(', yrrng[1], ', ', yrrng[2], '), yromit = ', yromit , ')')
+
     out <- eval(parse(text = toprs))
   
     out <- out + 
@@ -180,6 +187,8 @@ server <- function(input, output, session){
   trndseason <- eventReactive(input$submit, {
   
     # inputs
+    station <- input$station
+    parameter <- input$parameter
     yrs <- yrs()
     yrrng <- input$yrrng
     dytr <- input$dytr
@@ -201,11 +210,17 @@ server <- function(input, output, session){
     if(metsel == 'mean')
       useave <- T
 
+    # special handling of omit years depending on station parameter
+    yromit <- NULL
+    if(station == 32 & parameter %in% c('chl', 'gpp', 'kd'))
+      yromit <- 1990
+    
     out <- try({
 
       toprs <- paste0('show_trndseason(mod, metfun = ', metsel, ', doystr = ', dytr[1], ', doyend = ', dytr[2], 
                       ', ylab = "', ylb, '", nsim = 1e3, win = ', wntr, ', justify = "', wnty, '",
-                      useave = ', useave, ', base_size = ', bssz, ', xlim = c(', yrrng[1], ', ', yrrng[2], '))')
+                      useave = ', useave, ', base_size = ', bssz, ', xlim = c(', yrrng[1], ', ', yrrng[2], '),
+                      yromit = ', yromit, ')')
       
       eval(parse(text = toprs))
       
