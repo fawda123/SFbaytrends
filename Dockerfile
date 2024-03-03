@@ -33,6 +33,7 @@ RUN R -e "install.packages('gridExtra', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('shinycssloaders', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('here', repos='http://cran.rstudio.com/')"
 RUN R -e "remotes::install_version('flexdashboard', '0.5.2')"
+RUN R -e "remotes::install_version('ggplot2', '3.4.4')"
 
 # select port
 EXPOSE 3838
