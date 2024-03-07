@@ -172,7 +172,8 @@ server <- function(input, output, session){
     toprs <- paste0('show_mettrndseason(mod, metfun = ', metsel, ', doystr = ', dytr[1], ', doyend = ', dytr[2], 
                     ', ylab = "', ylb, '", nsim = 1e3, na.rm = TRUE, width = 0.6, size = 4, useave = ', useave, ', 
                     base_size = ', bssz, ', win = ', wntr, ', justify = "', wnty, '",
-                    xlim = c(', yrrng[1], ', ', yrrng[2], '), yromit = ', yromit , ')')
+                    xlim = c(', yrrng[1], ', ', yrrng[2], '), yromit = ', yromit , ', 
+                    nms = c("Increasing (p < 0.05)", "Decreasing (p < 0.05)", "No trend", "No estimate"))')
 
     out <- eval(parse(text = toprs))
   
@@ -220,7 +221,7 @@ server <- function(input, output, session){
       toprs <- paste0('show_trndseason(mod, metfun = ', metsel, ', doystr = ', dytr[1], ', doyend = ', dytr[2], 
                       ', ylab = "', ylb, '", nsim = 1e3, win = ', wntr, ', justify = "', wnty, '",
                       useave = ', useave, ', base_size = ', bssz, ', xlim = c(', yrrng[1], ', ', yrrng[2], '),
-                      yromit = ', yromit, ')')
+                      yromit = ', yromit, ', nms = c("Increasing (p < 0.05)", "Decreasing (p < 0.05)", "No trend"))')
       
       eval(parse(text = toprs))
       
@@ -257,7 +258,9 @@ server <- function(input, output, session){
     # make default seasonal range full year if input is GPP
     if(parameter == 'gpp')
       updateSliderInput(session, 'dytr', value = c(1, 365))
-    else 
+    if(parameter == 'din')
+      updateSliderInput(session, 'dytr', value = c(213, 273))
+    if(!parameter %in% c('gpp', 'din'))
       updateSliderInput(session, 'dytr', value = c(213, 304))
     
   })
