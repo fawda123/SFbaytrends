@@ -191,6 +191,10 @@ tomod <- datprc %>%
     )
   )
 
+# remove station 34, gpp (no seasonal signal captured by gam)
+tomod <- tomod |> 
+  filter(!(station %in% c(34) & param %in% c('gpp')))
+
 # create models for every station, gam model eval
 modssta <- tomod %>%
   mutate(
