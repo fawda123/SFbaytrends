@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y \
 
 # install R packages required 
 RUN R -e "install.packages('remotes', repos='http://cran.rstudio.com/')"
+RUN R -e "remotes::install_github('fawda123/CTDplot', upgrade = 'never')"
 RUN R -e "remotes::install_github('tbep-tech/wqtrends', upgrade = 'never')"
 RUN R -e "install.packages('data.table', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('DT', repos='http://cran.rstudio.com/')"
