@@ -5,7 +5,6 @@ FROM rocker/shiny-verse:latest
 RUN apt-get update && apt-get install -y \
   sudo \
   pandoc \
-  pandoc-citeproc \
   libcurl4-gnutls-dev \
   libcairo2-dev \
   libxt-dev \
@@ -23,7 +22,7 @@ RUN apt-get update && apt-get install -y \
 # install R packages required 
 RUN R -e "install.packages('remotes', repos='http://cran.rstudio.com/')"
 RUN R -e "remotes::install_github('fawda123/CTDplot', upgrade = 'never')"
-RUN R -e "remotes::install_github('tbep-tech/wqtrends', upgrade = 'never')"
+RUN R -e "remotes::install_github('tbep-tech/wqtrends', upgrade = 'always')"
 RUN R -e "install.packages('data.table', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('DT', repos='http://cran.rstudio.com/')"
 RUN R -e "remotes::install_version('flexdashboard', '0.5.2')"
