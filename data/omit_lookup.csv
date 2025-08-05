@@ -1,4 +1,17 @@
 station,parameters,years
+3,"chl,gpp,kd,do,dosat ","1982:1988,2020"
+6,"chl,gpp,kd","1982:1988,2020"
+9,"chl,gpp,kd","1982:1988,2020"
+13,"chl,gpp,kd","1982:1988,2020"
+15,"chl,gpp,kd","1982:1988,2020"
+18,"chl,gpp,kd,do,dosat,din",2022
+21,"chl,gpp,kd,do,dosat,din",2022
+22,"chl,gpp,kd,do,dosat,din",2022
+24,"chl,gpp,kd,do,dosat,din",2022
+27,"chl,gpp,kd,do,dosat,din",2022
+30,"chl,gpp,kd,do,dosat,din",2022
 32,"chl,gpp,kd","1990, 2022"
-657,"chl,gpp,kd,do,dosat,din","1980:1988,2020,2021 "
-3,"chl,gpp,kd,do,dosat ","1982:1988,2020,2022 "
+34,"chl,gpp,kd,do,dosat,din",2022
+36,"chl,gpp,kd,do,dosat,din",2022
+657,"chl,gpp,kd","1982:1988,2020"
+649,"chl,gpp,kd","1982:1988,2020,2021"

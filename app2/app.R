@@ -184,13 +184,16 @@ server <- function(input, output, session){
       yrrng <- yrs
     
     # special handling of omit years depending on station parameter
-    yromit <- NULL
     omyr<-omit%>%
       filter(station==input$station)
     ompar<-factor(strsplit(omyr$parameters,",")[[1]])
     
-    if(omyr$station[1]==input$station & input$parameter %in% ompar)
-      yromit<-paste0('c(',omyr$years,')')
+    if(omyr$station[1]==input$station & input$parameter %in% ompar){
+      yromit <- paste0('c(', omyr$years, ')')
+    } else {
+      yromit <- NULL
+    }
+    
     
     # plot
     toprs <- paste0('show_mettrndseason(mod, metfun = ', metsel, ', doystr = ', dytr[1], ', doyend = ', dytr[2], 
@@ -237,14 +240,15 @@ server <- function(input, output, session){
 
     # special handling of omit years depending on station parameter
     yromit <- NULL
-    # special handling of omit years depending on station parameter
-    yromit <- NULL
     omyr<-omit%>%
       filter(station==input$station)
     ompar<-factor(strsplit(omyr$parameters,",")[[1]])
     
-    if(omyr$station[1]==input$station & input$parameter %in% ompar)
-      yromit<-paste0('c(',omyr$years,')')
+    if(omyr$station[1]==input$station & input$parameter %in% ompar){
+      yromit <- paste0('c(', omyr$years, ')')
+    } else {
+      yromit <- NULL
+    }
     
     out <- try({
 
