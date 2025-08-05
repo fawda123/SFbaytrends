@@ -1,6 +1,6 @@
 # README
 
-![Docker Pulls](https://img.shields.io/docker/pulls/fawda123/sfbaytrends)
+[![Docker Pulls](https://img.shields.io/docker/pulls/fawda123/sfbaytrends)](https://hub.docker.com/repository/docker/fawda123/sfbaytrends)
 
 Materials for Shiny application to evaluate SF bay trends with [wqtrends](https://tbep-tech.github.io/wqtrends) R package
 
