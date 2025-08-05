@@ -129,13 +129,28 @@ server <- function(input, output, session){
     station <- input$station
     parameter <- input$parameter
     
+    # special handling of omit years depending on station parameter
+    omyr<-omit%>%
+      filter(station==input$station)
+    ompar<-factor(strsplit(omyr$parameters,",")[[1]])
     
-    omit <- NULL
-    if(station == 3 & parameter %in% c('chl', 'gpp', 'kd'))
-      omit <- c(1982:1988,2020:2021)
-    
-    if(station == 6 & parameter %in% c('chl', 'gpp', 'kd'))
-      omit <- c(1982:1988,2000:2001,2020:2022)
+    if(omyr$station[1]==station & parameter %in% ompar){
+      parts <- unlist(strsplit(omyr$years[1], ","))
+      
+      # Parse each part
+      yromit <- unlist(lapply(parts, function(x) {
+        if (grepl(":", x)) {
+          # If part contains a colon, treat it as a range
+          range_vals <- as.numeric(unlist(strsplit(x, ":")))
+          return(seq(range_vals[1], range_vals[2]))
+        } else {
+          # Otherwise, treat as a single number
+          return(as.numeric(x))
+        }
+      }))
+    } else {
+      yromit <- NULL
+    }
     
     validate(
       need(!is.null(mod), "No model available")
@@ -146,7 +161,7 @@ server <- function(input, output, session){
     
     xlim <- as.Date(c(paste0(yrrng[1], '-01', '-01'), paste0(yrrng[2], '-12', '-31')))
  
-    out <- show_prdseries(mod, ylab = ylb, base_size = bssz, xlim = xlim,yromit = omit) + 
+    out <- show_prdseries(mod, ylab = ylb, base_size = bssz, xlim = xlim,yromit = yromit) + 
       labs(
         title = "GAM fit",
         subtitle = "Points are observed values"
