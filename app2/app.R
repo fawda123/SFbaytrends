@@ -9,7 +9,15 @@ library(shinycssloaders)
 
 load(file = here('data/datprc.RData'))
 load(file = here('data/locs.RData'))
-load(file = here('data/map.RData'))
+load(file = here('data/mapnew.RData'))
+locs<-read.csv(here('data/petersonlocations.csv'))%>%
+  filter(Station %in% unique(datprc$station))%>%
+  rename(lat=Lat,
+         lon=Long)%>%
+  select(-Location)
+
+omit<-read.csv(here('data/omit_lookup.csv'))
+  
 
 params <- list(
   'Chlorophyll-a (ug/L)' = 'chl',
@@ -30,6 +38,8 @@ pbase <- ggmap(map) +
     axis.title.y = element_blank(),
     plot.background = element_rect(fill = 'transparent', color = NA)
   )
+
+
 
 server <- function(input, output, session){
   
@@ -116,6 +126,16 @@ server <- function(input, output, session){
     mod <- mod()
     ylb <- ylb()
     yrrng <- input$yrrng
+    station <- input$station
+    parameter <- input$parameter
+    
+    
+    omit <- NULL
+    if(station == 3 & parameter %in% c('chl', 'gpp', 'kd'))
+      omit <- c(1982:1988,2020:2021)
+    
+    if(station == 6 & parameter %in% c('chl', 'gpp', 'kd'))
+      omit <- c(1982:1988,2000:2001,2020:2022)
     
     validate(
       need(!is.null(mod), "No model available")
@@ -126,7 +146,7 @@ server <- function(input, output, session){
     
     xlim <- as.Date(c(paste0(yrrng[1], '-01', '-01'), paste0(yrrng[2], '-12', '-31')))
  
-    out <- show_prdseries(mod, ylab = ylb, base_size = bssz, xlim = xlim) + 
+    out <- show_prdseries(mod, ylab = ylb, base_size = bssz, xlim = xlim,yromit = omit) + 
       labs(
         title = "GAM fit",
         subtitle = "Points are observed values"
@@ -165,8 +185,12 @@ server <- function(input, output, session){
     
     # special handling of omit years depending on station parameter
     yromit <- NULL
-    if(station == 32 & parameter %in% c('chl', 'gpp', 'kd'))
-      yromit <- 1990
+    omyr<-omit%>%
+      filter(station==input$station)
+    ompar<-factor(strsplit(omyr$parameters,",")[[1]])
+    
+    if(omyr$station[1]==input$station & input$parameter %in% ompar)
+      yromit<-paste0('c(',omyr$years,')')
     
     # plot
     toprs <- paste0('show_mettrndseason(mod, metfun = ', metsel, ', doystr = ', dytr[1], ', doyend = ', dytr[2], 
@@ -213,8 +237,14 @@ server <- function(input, output, session){
 
     # special handling of omit years depending on station parameter
     yromit <- NULL
-    if(station == 32 & parameter %in% c('chl', 'gpp', 'kd'))
-      yromit <- 1990
+    # special handling of omit years depending on station parameter
+    yromit <- NULL
+    omyr<-omit%>%
+      filter(station==input$station)
+    ompar<-factor(strsplit(omyr$parameters,",")[[1]])
+    
+    if(omyr$station[1]==input$station & input$parameter %in% ompar)
+      yromit<-paste0('c(',omyr$years,')')
     
     out <- try({
 
