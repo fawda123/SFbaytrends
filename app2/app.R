@@ -346,7 +346,7 @@ ui <- function(request) {
     column(4,
       withSpinner(plotOutput('mapselplo')),
       actionButton('submit', 'Submit', width = '100%', style = 'color: white; background-color: rgb(66, 139, 202);'),
-      selectInput("station", "Station (all):", sort(unique(datprc$station)), width = '100%'),
+      selectInput("station", "Station (all):",  selected = "18", sort(unique(datprc$station)), width = '100%'),
       selectInput("parameter", "Parameter (all):", choices = params, width = '100%'),
       selectInput('wnty', 'Window type (middle, bottom):', choices = c('right', 'left', 'center'), width = '100%'),
       selectInput('metsel', 'Summary metric (middle, bottom):', choices = c('mean', 'min', 'max', 'var'), width = '100%'),
