@@ -2,12 +2,13 @@ library(tidyverse)
 library(lubridate)
 library(sf)
 library(wqtrends)
+library(here)
 
 # station lat/lon as separate file ----------------------------------------
 
 data(datprc)
 
-locs <- read.csv('raw/usgs_stations.csv') %>%
+locs <- read.csv(here('data/raw/usgs_stations.csv')) %>%
   filter(Station %in% datprc$station)
 
 save(locs, file = 'data/locs.RData', compress = 'xz')
@@ -37,6 +38,7 @@ chldat <- chlraw %>%
     param = tolower(param)
   ) %>% 
   filter(!is.na(value)) %>% 
+  filter(yr>=1988)%>%
   filter(!(station == 18 & yr < 1990)) %>% 
   filter(!(station %in% c(21, 22, 24, 27, 30, 32) & yr < 1983)) %>% 
   filter(!(station %in% c(34, 36) & yr < 1992))
@@ -57,6 +59,7 @@ gppdat <- gppraw %>%
   gather('param', 'value', gpp) %>% 
   select(date, station, param, value, doy, cont_year, yr, mo) %>% 
   filter(!is.na(value)) %>% 
+  filter(yr>=1988)%>%
   filter(!(station == 18 & yr < 1990)) %>% 
   filter(!(station %in% c(21, 22, 24, 27, 30, 32) & yr < 1983)) %>% 
   filter(!(station %in% c(34, 36) & yr < 1992))
@@ -78,6 +81,7 @@ kddat <- gppraw %>%
   select(date, station, param, value, doy, cont_year, yr, mo) %>% 
   filter(!is.na(value)) %>% 
   filter(!(station == 18 & yr < 1990)) %>% 
+  filter(yr>=1988)%>%
   filter(!(station %in% c(21, 22, 24, 27, 30, 32) & yr < 1983)) %>% 
   filter(!(station %in% c(34, 36) & yr < 1992))
 
@@ -123,7 +127,7 @@ dindat <- dinraw %>%
     mo = month(date, label = T),
     param = tolower(param)
   ) %>% 
-  filter(yr < 2022) %>% 
+  #filter(yr < 2022) %>% 
   filter(!is.na(value))
 
 # combine new do ests, gpp with datprc
