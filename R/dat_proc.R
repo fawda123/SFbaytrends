@@ -128,7 +128,8 @@ dindat <- dinraw %>%
     param = tolower(param)
   ) %>% 
   #filter(yr < 2022) %>% 
-  filter(!is.na(value))
+  filter(!is.na(value))%>% 
+  filter(yr>=1988)
 
 # combine new do ests, gpp with datprc
 datprc <- bind_rows(chldat, gppdat, dodat, kddat, dindat) %>% 
