@@ -23,7 +23,8 @@ chlraw <- read.csv('data/raw/sfb_surf_CB_SB_LSB.csv', stringsAsFactors = F)
 gppraw <- read.csv('data/raw/sfb_GPP_monthly.csv', stringsAsFactors = F) 
 doraw <- read.csv('data/raw/CB_SB_LSB_depthavg_O2.csv', stringsAsFactors = F)
 # sscraw <- read.csv('data/raw/Dumbarton_BridgeProcessed_15min.csv', stringsAsFactors = F)
-dinraw <- read.csv('data/raw/datprc_DIN_CBSBLSB_clean.csv', stringsAsFactors = F)
+dinraw <- read.csv('data/raw/df_fullbay_DIN.csv', stringsAsFactors = F)
+  
 
 # get chlorophyll as ug l-1
 chldat <- chlraw %>% 
@@ -39,8 +40,6 @@ chldat <- chlraw %>%
   ) %>% 
   filter(!is.na(value)) %>% 
   filter(yr>=1988)%>%
-  filter(!(station == 18 & yr < 1990)) %>% 
-  filter(!(station %in% c(21, 22, 24, 27, 30, 32) & yr < 1983)) %>% 
   filter(!(station %in% c(34, 36) & yr < 1992))
 
 # get gpp as mg C m-2 d-1
@@ -117,7 +116,8 @@ dodat <- doraw %>%
 
 # get din dat as uM, problematic dates already removed
 dindat <- dinraw %>% 
-  select(date, station, din = value) %>% 
+  select(date, station, din) %>% 
+  rename(value=din)%>%
   gather('param', 'value', -date, -station) %>% 
   mutate(
     date = ymd(date),
