@@ -59,8 +59,8 @@ gppdat <- gppraw %>%
   select(date, station, param, value, doy, cont_year, yr, mo) %>% 
   filter(!is.na(value)) %>% 
   filter(yr>=1988)%>%
-  filter(!(station == 18 & yr < 1990)) %>% 
-  filter(!(station %in% c(21, 22, 24, 27, 30, 32) & yr < 1983)) %>% 
+  #filter(!(station == 18 & yr < 1990)) %>% 
+  #filter(!(station %in% c(21, 22, 24, 27, 30, 32) & yr < 1983)) %>% 
   filter(!(station %in% c(34, 36) & yr < 1992))
 
 # light attenuation as m-1
@@ -79,9 +79,9 @@ kddat <- gppraw %>%
   gather('param', 'value', kd) %>% 
   select(date, station, param, value, doy, cont_year, yr, mo) %>% 
   filter(!is.na(value)) %>% 
-  filter(!(station == 18 & yr < 1990)) %>% 
+  #filter(!(station == 18 & yr < 1990)) %>% 
   filter(yr>=1988)%>%
-  filter(!(station %in% c(21, 22, 24, 27, 30, 32) & yr < 1983)) %>% 
+  #filter(!(station %in% c(21, 22, 24, 27, 30, 32) & yr < 1983)) %>% 
   filter(!(station %in% c(34, 36) & yr < 1992))
 
 # get depth-averaged do (mg/l and % sat)
