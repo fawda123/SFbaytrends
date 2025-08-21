@@ -118,14 +118,14 @@ dodat <- doraw %>%
 dindat <- dinraw %>% 
   select(date, station, din) %>% 
   rename(value=din)%>%
-  gather('param', 'value', -date, -station) %>% 
+  #gather('param', 'value', -date, ) %>% 
   mutate(
     date = ymd(date),
     doy = yday(date), 
     cont_year = decimal_date(date),
     yr = year(date),
     mo = month(date, label = T),
-    param = tolower(param)
+    param = "din"
   ) %>% 
   #filter(yr < 2022) %>% 
   filter(!is.na(value))%>% 
@@ -220,7 +220,7 @@ tosv <- modssta %>%
 for(i in 1:nrow(tosv)){
   
   cat(i, 'of', nrow(tosv), '\n')
-  
+   
   sta <- tosv[[i, 'station']]
   param <- tosv[[i, 'param']]
   
