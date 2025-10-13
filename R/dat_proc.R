@@ -125,7 +125,10 @@ dindat <- dinraw %>%
     cont_year = decimal_date(date),
     yr = year(date),
     mo = month(date, label = T),
-    param = "din"
+    param = "din",
+    station = gsub(21,22,station),
+    station = gsub(34,36,station),
+    station = as.numeric(station)
   ) %>% 
   #filter(yr < 2022) %>% 
   filter(!is.na(value))%>% 
